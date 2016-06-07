@@ -4,7 +4,7 @@
 '''
 The MIT License (MIT)
 
-Copyright (c) 2015 Charles Lin
+Copyright (c) 2016 Charles Lin
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,10 +34,10 @@ THE SOFTWARE.
 
 
 import sys
-sys.path.append('/ark/home/cl512/src/pipeline/')
+sys.path.append('/home/chazlin/pipeline/')
 
 import pipeline_dfci
-
+import utils
 #==========================================================================
 #============================PARAMETERS====================================
 #==========================================================================
@@ -47,7 +47,7 @@ import pipeline_dfci
 projectName = 'projectName'
 dataFile = '/grail/projects/%s/DATA_TABLE.txt' % (projectName)
 genome ='hg19'
-annotFile = '/ark/home/cl512/src/pipeline/annotation/%s_refseq.ucsc' % (genome)
+annotFile = '/home/chazlin/pipeline/annotation/%s_refseq.ucsc' % (genome)
 
 #project folders
 projectFolder = '/grail/projects/%s/' % (projectName) #PATH TO YOUR PROJECT FOLDER

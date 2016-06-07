@@ -455,6 +455,7 @@ def main():
         'MM8': '%s/annotation/mm8_refseq.ucsc' % (cwd),
         'MM10': '%s/annotation/mm10_refseq.ucsc' % (cwd),
         'RN4': '%s/annotation/rn4_refseq.ucsc' % (cwd),
+        'RN6': '%s/annotation/rn6_refseq.ucsc' % (cwd),
     }
 
     annotFile = genomeDict[genome.upper()]
@@ -547,7 +548,7 @@ def main():
     # MAPPING TO THE STITCHED GFF
 
     # Try to use the bamliquidatior_path.py script on cluster, otherwise, failover to local (in path), otherwise fail.
-    bamliquidator_path = 'bamliquidator_batch'
+    bamliquidator_path = 'bamliquidator_batch.py'
 
 
     bamFileListUnique = list(bamFileList)

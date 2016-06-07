@@ -42,7 +42,7 @@ import utils
 #command arguments
 bowtieString = 'bowtie2'
 samtoolsString = 'samtools'
-tempParentFolder = '/grail/BOWTIE_TEMP/'
+tempParentFolder = '/raider/BOWTIE_TEMP/'
 fastqcString = '/usr/local/FastQC/fastqc'
 fastqDelimiter = '::'
 
@@ -416,12 +416,12 @@ def main():
 
     #get the bowtie index
     bowtieDict = {
-        'mm9':'/raider/index/mm9/Bowtie2Index/genome',
-        'hg19':'/raider/index/hg19/Bowtie2Index/genome',
-        'hg18':'/grail/genomes/Homo_sapiens/human_gp_mar_06_no_random/bowtie/hg18',
-        'geckov2':'/grail/genomes/gecko/GeCKOv2/Sequence/Bowtie2Index/gecko',
-        'ribo':'/raider/temp/rDNA/hg19_45S_index/genome',
-        'hg19_ribo':'/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index_ribo/genome',
+
+        'hg19':'/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index/genome',
+        'hg38':'/grail/genomes/Homo_sapiens/UCSC/hg38/Sequence/Bowtie2Index/genome',
+        'mm10':'/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Bowtie2Index/genome',
+        'rn6' :'/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Bowtie2Index/genome',
+        
         }
 
     bowtieIndex = bowtieDict[string.lower(genome)]

@@ -1,10 +1,6 @@
 #!/usr/bin/python
 #pipeline.py
 
-samtoolsString = 'samtools'
-bamliquidator_path = 'bamliquidator_batch'
-pipelineFolder = '/ark/home/cl512/pipeline/' # need to set this to where this code is stored
-fastqDelimiter = '::' #delimiter for pairs in fastqs
 
 '''
 The MIT License (MIT)
@@ -43,7 +39,7 @@ THE SOFTWARE.
 
 
 import sys
-#sys.path.append('/mnt/d0-0/share/bradnerlab/src/cl512/pipeline/')
+sys.path.append('/home/chazlin/pipeline/')
 
 print('\nUsing following version of python:\n')
 print(sys.version)
@@ -60,8 +56,25 @@ import re
 import random
 import string
 import numpy
+import os
 
 from collections import defaultdict
+
+#==========================================================================
+#==============================GLOBAL PATHS================================
+#==========================================================================
+
+
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+
+pipelineFolder = '%s/' % (whereAmI) # need to set this to where this code is stored
+samtoolsString = 'samtools'
+bamliquidator_path = 'bamliquidator_batch.py'
+
+fastqDelimiter = '::' #delimiter for pairs in fastqs
+
+
+
 
 #==========================================================================
 #===========================TABLE OF CONTENTS==============================
@@ -720,13 +733,14 @@ def makeBowtieBashJobs(dataFile,namesList = [],launch=True,overwrite=False,param
 
         #see if the dataset is already entered into TONY
         #get the parent tony folder
-        tonyFolder = getTONYInfo(uniqueID,column = 30)
-        print(tonyFolder)
-        if tonyFolder:
-            outputFolder = tonyFolder
-        else:
-            outputFolder = dataDict[name]['folder']
+        #tonyFolder = getTONYInfo(uniqueID,column = 30)
+        # print(tonyFolder)
+        # if tonyFolder:
+        #     outputFolder = tonyFolder
+        # else:
+        #     outputFolder = dataDict[name]['folder']
 
+        outputFolder = dataDict[name]['folder']
         outputFolder = formatFolder(outputFolder,create=True)
 
         #setting up the folder for linking
@@ -746,7 +760,7 @@ def makeBowtieBashJobs(dataFile,namesList = [],launch=True,overwrite=False,param
 
         if run:
     
-            cmd = "python /ark/home/cl512/pipeline/callBowtie2.py -f %s -g %s -u %s -o %s --link-folder %s" % (fastqFile,genome,uniqueID,outputFolder,linkFolder)
+            cmd = "python %s/callBowtie2.py -f %s -g %s -u %s -o %s --link-folder %s" % (whereAmI,fastqFile,genome,uniqueID,outputFolder,linkFolder)
             
             #add the param string
             cmd += " --param '%s'" % (paramString)
@@ -1921,7 +1935,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
             
 
             if overWrite:
-                cmd1 = "python /ark/home/cl512/pipeline/bamToGFF_turbo.py -e 200 -m %s -b %s -i %s -o %s" % (nBin,fullBamFile,gffFile,outFile)
+                cmd1 = "python %s/bamToGFF_turbo.py -e 200 -m %s -b %s -i %s -o %s" % (whereAmI,nBin,fullBamFile,gffFile,outFile)
                 if rpm:
                     cmd1 += ' -r'
                 cmd1 += ' &'
@@ -1933,7 +1947,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                     Foo = open(outFile,'r')
                     print('File %s Already Exists, not mapping' % (outFile))
                 except IOError:
-                    cmd1 = "python /ark/home/cl512/pipeline/bamToGFF_turbo.py -e 200 -m %s -b %s -i %s -o %s" % (nBin,fullBamFile,gffFile,outFile)
+                    cmd1 = "python %s/bamToGFF_turbo.py -e 200 -m %s -b %s -i %s -o %s" % (whereAmI,nBin,fullBamFile,gffFile,outFile)
                     if rpm:
                         cmd1 += ' -r'
                     cmd1 += ' &'
@@ -2321,8 +2335,8 @@ def callGenePlot(dataFile,geneID,plotName,annotFile,namesList,outputFolder,regio
     bamList = [dataDict[name]['bam'] for name in namesList]
     bamString = string.join(bamList,',')
     genome = string.lower(dataDict[namesList[0]]['genome'])
-    os.chdir('/ark/home/cl512/src/pipeline/')
-    cmd = "python /ark/home/cl512/src/pipeline/bamPlot_turbo.py -n %s -t %s -c %s -g %s -p %s -y %s -b %s -i %s -o %s -r --save-temp &" % (nameString,titleString,colorString,genome,plotType,yScale,bamString,locusString,outputFolder)
+    os.chdir(whereAmI)
+    cmd = "python %s/bamPlot_turbo.py -n %s -t %s -c %s -g %s -p %s -y %s -b %s -i %s -o %s -r --save-temp &" % (whereAmI,nameString,titleString,colorString,genome,plotType,yScale,bamString,locusString,outputFolder)
 
     #cmd = "python /nfs/young_ata/scripts/bamPlot.py -n %s -t %s -c %s -g hg18 -p multiple -y uniform -b %s -i %s -o %s" % (nameString,titleString,colorString,bamString,locusString,outputFolder)
     print(cmd)
@@ -2532,7 +2546,7 @@ def mapMetaBams(dataFile,metaName,gffList,cellTypeList,metaFolder,nameList= [],o
                     
             bamFile = dataDict[name]['bam']
 
-            cmd = 'python /ark/home/cl512/pipeline/makeBamMeta.py -c -n %s -g %s -b %s -o %s &' % (name,gffString,bamFile,outdir)
+            cmd = 'python %s/makeBamMeta.py -c -n %s -g %s -b %s -o %s &' % (whereAmI,name,gffString,bamFile,outdir)
             if overwrite == False:
                 try:
                     foo = open('%s%s_metaSettings.txt' % (outdir,name),'r')
@@ -2640,7 +2654,7 @@ def callHeatPlotOrdered(dataFile,gffFile,namesList,orderByName,geneListFile,outp
         cmd += ' %s' % (backgroundGFF)
 
         #now finish the command
-        cmd += ' < /ark/home/cl512/pipeline/heatMapOrdered.R &'
+        cmd += ' < %s/heatMapOrdered.R &' % (whereAmI)
 
         print(cmd)
         os.system(cmd)
@@ -2736,7 +2750,7 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
     if len(bashFileName) == 0:
         bashFileName = '%srose_%s_%s.sh' % (parentFolder,timeStamp,randTicker)
     bashFile = open(bashFileName,'w')
-    bashFile.write("cd /ark/home/cl512/pipeline/")
+    bashFile.write("cd %s" % (whereAmI))
     bashFile.write('\n')
 
     mapString = [dataDict[name]['bam'] for name in extraMap]
@@ -2798,7 +2812,7 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
     '''
     call cuffquant on each bam individually
     and then string the cbx files into cuffnorm
-
+    groupList = [['A_1','A_2'],['B_1','B_2']]
     '''
 
     def long_substr(data):

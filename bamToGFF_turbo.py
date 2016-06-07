@@ -79,7 +79,7 @@ def mapBamToGFF(bamFile,gff,sense = '.',extension = 200,rpm = False,clusterGram 
         nBin = int(matrix)
 
     # Try to use the bamliquidatior script on cluster, otherwise, failover to local (in path), otherwise fail.
-    bamliquidatorString = '/usr/bin/bamliquidator'
+    bamliquidatorString = '/usr/local/bin/pipeline/bamliquidator_internal/bamliquidator'
     if not os.path.isfile(bamliquidatorString):
         bamliquidatorString = './bamliquidator'
         if not os.path.isfile(bamliquidatorString):

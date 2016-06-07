@@ -47,7 +47,7 @@ print "Using python version %s" % sys.version
     
 
 #importing utils package
-sys.path.append('/ark/home/cl512/pipeline/')
+sys.path.append('/home/chazlin/pipeline/')
 import utils
 import pipeline_dfci
 import os
@@ -61,7 +61,7 @@ import numpy
 
 #add locations of files and global parameters in this section
 
-pipelineDir = '/ark/home/cl512/pipeline/'
+pipelineDir = '/home/chazlin/pipeline/'
 
 
 #dataFile = '/ark/home/cl512/projects/athero/EC_TABLE_FINAL.txt'
@@ -660,7 +660,7 @@ def main():
     parser = OptionParser(usage = usage)
     #required flags
     parser.add_option("-g","--genome", dest="genome",nargs = 1, default=None,
-                      help = "Enter the genome build (HG18,HG19,MM9,RN4) for the project")
+                      help = "Enter the genome build (HG18,HG19,MM9,RN4,RN6) for the project")
     parser.add_option("-d","--data", dest="data",nargs = 1, default=None,
                       help = "Enter the data file for the project")
     parser.add_option("-r","--rose", dest="rose",nargs = 1, default=None,
