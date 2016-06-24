@@ -1315,11 +1315,11 @@ def callMacs2(dataFile,macsFolder,namesList = [],broad=True,noBackground = False
             broadCall = ''
             
         if noBackground:
-            cmd = "/usr/local/bin/macs2 callpeak -t %s -f %s -g %s --outdir %s -n %s -p %s %s &" % (bamFile,fileType,genomeString,outdir,name,pvalue,broadCall)
+            cmd = "macs2 callpeak -t %s -f %s -g %s --outdir %s -n %s -p %s %s &" % (bamFile,fileType,genomeString,outdir,name,pvalue,broadCall)
         else:
             backgroundName =  dataDict[name]['background']
             backgroundBamFile = dataDict[backgroundName]['bam']
-            cmd = "/usr/local/bin/macs2 callpeak -t %s -c %s -f %s -g %s --outdir %s -n %s -p %s %s &" % (bamFile,backgroundBamFile,fileType,genomeString,outdir,name,pvalue,broadCall)
+            cmd = "macs2 callpeak -t %s -c %s -f %s -g %s --outdir %s -n %s -p %s %s &" % (bamFile,backgroundBamFile,fileType,genomeString,outdir,name,pvalue,broadCall)
 
 
         print(cmd)
@@ -2046,7 +2046,7 @@ def mapBamsQsub(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite 
 
 
 
-def mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [],extension=200):
+def mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [],extension=200,rpm=True):
     
     '''
     for each gff maps all of the data and writes to a specific folder named after the gff
