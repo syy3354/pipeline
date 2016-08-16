@@ -47,7 +47,7 @@ print "Using python version %s" % sys.version
     
 
 #importing utils package
-sys.path.append('/ark/home/cl512/pipeline/')
+sys.path.append('/home/chazlin/pipeline/')
 import utils
 import pipeline_dfci
 import os
@@ -61,10 +61,10 @@ import numpy
 
 #add locations of files and global parameters in this section
 
-pipelineDir = '/ark/home/cl512/pipeline/'
+pipelineDir = '/home/chazlin/pipeline/'
 
 
-#dataFile = '/ark/home/cl512/projects/athero/EC_TABLE_FINAL.txt'
+
 #genome = 'hg18'
 
 #dataDict = pipeline_dfci.loadDataTable(dataFile)
@@ -764,7 +764,7 @@ def main():
     parser.add_option("-e","--enhancer-type", dest="enhancer_type",nargs = 1,default='super',
                       help = "specify type of enhancer to analyze: super, stretch, superStretch")
     parser.add_option("--use-background", dest="background",action = 'store_true',default=False,
-                      help = "specify type of enhancer to analyze: super, stretch, superStretch")
+                      help = "If flagged will use background datasets as in data table")
 
     (options,args) = parser.parse_args()
 

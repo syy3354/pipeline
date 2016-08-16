@@ -39,7 +39,7 @@ print('RUNNING ROSE2_META.py FROM %s' % (whereAmI))
 samtoolsPath = 'samtools'
 
 #bamliquidator must be installed
-bamliquidator_path = 'bamliquidator_batch'
+bamliquidator_path = 'bamliquidator_batch.py'
 
 #==================================================================
 #=====================HELPER FUNCTIONS=============================
