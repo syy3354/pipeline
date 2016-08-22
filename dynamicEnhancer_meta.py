@@ -55,6 +55,7 @@ import time
 import string
 import numpy
 
+from collections import defaultdict
 #================================================================================
 #============================GLOBAL PARAMETERS===================================
 #================================================================================
@@ -135,7 +136,7 @@ def makeRoseDict(roseFolder):
     return roseDict
 
 
-def getMedianSignal(enhancerFile,name,dataFile):
+def getMedianSignalEnhancer(enhancerFile,name,dataFile):
 
     '''
     returns the median enhancer signal of a file
@@ -143,13 +144,31 @@ def getMedianSignal(enhancerFile,name,dataFile):
     dataDict = pipeline_dfci.loadDataTable(dataFile)
     enhancerTable = utils.parseTable(enhancerFile,'\t')
 
-
     enhancerVector = [float(line[6]) for line in enhancerTable[6:]]
             
 
     median= numpy.median(enhancerVector)
 
     return median
+
+
+
+
+def getSignalVector(regionFile,name,dataFile):
+
+    '''
+    returns the median enhancer signal of a file
+    '''
+    dataDict = pipeline_dfci.loadDataTable(dataFile)
+    regionTable = utils.parseTable(regionFile,'\t')
+
+    bamPath = dataDict[name]['bam']
+    bamName = bamPath.split('/')[-1]
+
+    colID = regionTable[0].index(bamName)
+    signalVector = [float(line[colID]) for line in regionTable[1:]]
+            
+    return signalVector
 
 
 
@@ -353,14 +372,15 @@ def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,
             return roseOutput
 
 
-def mergeRoseSignal(roseOutput,name1,name2,namesList1,namesList2,useBackground):
+def mergeRoseSignal(dataFile,roseOutput,roseDict1,roseDict2,name1,name2,namesList1,namesList2,useBackground,medianScale):
 
     '''
     takes the rose output and merges signal
     '''
 
     regionMap = utils.parseTable(roseOutput,'\t')
-    output = string.replace(roseOutput,'MAP.txt','MAP_MERGED.txt')
+    output_merged = string.replace(roseOutput,'MAP.txt','MAP_MERGED.txt')
+    output_norm = string.replace(roseOutput,'MAP.txt','MAP_NORM.txt')
 
     #one column for each signal
 
@@ -371,6 +391,7 @@ def mergeRoseSignal(roseOutput,name1,name2,namesList1,namesList2,useBackground):
         name2BackgroundColumns = range(len(namesList1 +namesList2+namesList1),len(namesList1 + namesList2 + namesList1 + namesList2),1)
     
     mergedMap = [regionMap[0][0:6] + ['%s_SIGNAL' % (name1),'%s_SIGNAL' % (name2)]]
+    normMap = [regionMap[0][0:6] + namesList1 + namesList2]
     for line in regionMap[1:]: 
 
         signalVector = [float(x) for x in line[7:]]     #we ignore the 6th column
@@ -395,11 +416,63 @@ def mergeRoseSignal(roseOutput,name1,name2,namesList1,namesList2,useBackground):
 
             name2Vector = [signalVector[i] for i in name2Columns]
             name2Signal = numpy.mean(name2Vector)
-        newLine = line[0:6] + [name1Signal,name2Signal]
-        mergedMap.append(newLine)
+        mergeLine = line[0:6] + [name1Signal,name2Signal]
+        mergedMap.append(mergeLine)
+        normLine = line[0:6] + name1Vector + name2Vector
+        normMap.append(normLine)
 
-    utils.unParseTable(mergedMap,output,'\t')
-    return output
+
+    if medianScale:
+        #now we basically have to do the same thing to the region map for each one
+
+        #this must have the correct name/background relationships as the original rose
+        dataDict = pipeline_dfci.loadDataTable(dataFile) 
+        medianDict = defaultdict(float)
+        #can do this for each region map
+        regionMap1 = roseDict1['RegionMap']
+        regionMap2 = roseDict2['RegionMap']
+        print(regionMap1)
+        print(regionMap2)
+        
+        for name in namesList1:
+            signalVector = getSignalVector(regionMap1,name,dataFile)
+            if useBackground:
+                backgroundName = dataDict[name]['background']
+                backgroundVector = getSignalVector(regionMap1,backgroundName,dataFile)
+                normVector = numpy.subtract(signalVector,backgroundVector).tolist()
+                medianDict[name] = numpy.median(normVector)
+            else:
+                medianDict[name] = numpy.median(signalVector)
+
+        #for second namesList must use regionMap2
+        for name in namesList2:
+            signalVector = getSignalVector(regionMap2,name,dataFile)
+            if useBackground:
+                backgroundName = dataDict[name]['background']
+                backgroundVector = getSignalVector(regionMap2,backgroundName,dataFile)
+                normVector = numpy.subtract(signalVector,backgroundVector).tolist()
+                medianDict[name] = numpy.median(normVector)
+            else:
+                medianDict[name] = numpy.median(signalVector)
+    
+        #so here we only need to adjust the normMap
+        for name in namesList1 + namesList2:
+
+            medianSignal = medianDict[name]
+            col = normMap[0].index(name)
+            for row in range(1,len(normMap)):
+                signal = float(normMap[row][col])
+                normMap[row][col] = float(signal)/float(medianSignal)
+        print(medianDict)
+
+
+    utils.unParseTable(mergedMap,output_merged,'\t')
+    utils.unParseTable(normMap,output_norm,'\t')
+
+    
+
+
+    return output_merged,output_norm
         
 
 def callDeltaRScript(mergedGFFFile,parentFolder,dataFile,name1,name2,allFile1,allFile2,medianScale,namesList1):
@@ -408,8 +481,8 @@ def callDeltaRScript(mergedGFFFile,parentFolder,dataFile,name1,name2,allFile1,al
     runs the R script
     '''
     if medianScale:
-        median1 = getMedianSignal(allFile1,name1,dataFile)
-        median2 = getMedianSignal(allFile2,name2,dataFile)
+        median1 = getMedianSignalEnhancer(allFile1,name1,dataFile)
+        median2 = getMedianSignalEnhancer(allFile2,name2,dataFile)
         print "normalizing signal for %s by median value of %s" % (name1,median1)
         print "normalizing signal for %s by median value of %s" % (name2,median2)
 
@@ -446,7 +519,16 @@ def callRankRScript(enhancerRankFile,name1,name2,superFile1,superFile2):
 
     return rcmd
 
+def callRegionPlotRScript(normRoseOutput,name1,name2,namesList1,namesList2):
 
+    '''
+    runs the R script to make individual region plots and statistics
+    '''
+    
+    os.chdir(pipelineDir)
+    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_region.R" % (normRoseOutput,name1,name2,len(namesList1),len(namesList2))
+    
+    return rcmd
 
 
 def callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1):
@@ -455,14 +537,40 @@ def callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1):
     calls the rose gene mapper w/ 100kb window
     '''
     gffName = mergedGFFFile.split('/')[-1].split('.')[0]
-    stitchedFile = "%s%s_ROSE/%s_0KB_STITCHED_ENHANCER_REGION_MAP_MERGED.txt" % (parentFolder,namesList1[0],gffName)
+    stitchedFile = "%s%s_ROSE/%s_0KB_STITCHED_ENHANCER_REGION_MAP.txt" % (parentFolder,namesList1[0],gffName)
     
-    deltaFile = stitchedFile.replace('REGION_MAP','DELTA')
+    deltaFile = stitchedFile.replace('REGION_MAP','DELTA_MERGED')
     
     os.chdir(pipelineDir)
     cmd = 'python ROSE2_geneMapper.py -g %s -i %s -w 100000' % (genome,deltaFile)
     os.system(cmd)
     print(cmd)
+
+
+def callRoseGeneMapper_stats(mergedGFFFile,genome,parentFolder,namesList1):
+
+    '''
+    calls the rose gene mapper w/ 100kb window
+    '''
+    gffName = mergedGFFFile.split('/')[-1].split('.')[0]
+    regionStatsFile = "%s%s_ROSE/%s_0KB_STITCHED_ENHANCER_REGION_STATS.txt" % (parentFolder,namesList1[0],gffName)
+
+    regionDiffFile = "%s%s_ROSE/%s_0KB_STITCHED_ENHANCER_REGION_STATS_DIFF.txt" % (parentFolder,namesList1[0],gffName)
+    
+    os.chdir(pipelineDir)
+
+    cmd = 'python ROSE2_geneMapper.py -g %s -i %s -w 100000 -f' % (genome,regionStatsFile)
+    os.system(cmd)
+    print(cmd)
+    cmd = 'python ROSE2_geneMapper.py -g %s -i %s -w 100000 -f' % (genome,regionDiffFile)
+    os.system(cmd)
+    print(cmd)
+
+    statOutFile = regionStatsFile.replace('.txt','_ENHANCER_TO_GENE_100KB.txt')
+    diffOutFile = regionDiffFile.replace('.txt','_ENHANCER_TO_GENE_100KB.txt')
+
+    print(statOutFile,diffOutFile)
+    return statOutFile,diffOutFile
     
 
 
@@ -519,7 +627,7 @@ def assignEnhancerRank(enhancerToGeneFile,enhancerFile1,enhancerFile2,name1,name
 
 #make gain lost gffs
 
-def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name2,namesList1,namesList2,cutOff=1.5,window = 100000,superOnly=True,plotBam=True):
+def finishRankOutput(dataFile,statOutput,diffOutput,genome,mergeFolder,mergeName,name1,name2,namesList1,namesList2,cutOff=1.0,window = 100000,superOnly=True,plotBam=True):
 
     '''
     cleans up the rank output table
@@ -538,12 +646,10 @@ def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name
     outputFolder =pipeline_dfci.formatFolder(mergeFolder+'output/',True)
     
     #bring in the old rank table
-    rankEnhancerTable = utils.parseTable(rankOutput,'\t')
+    rankEnhancerTable = utils.parseTable(statOutput,'\t')
     
     #make a new formatted table
     header = rankEnhancerTable[0]
-    header[-4] = 'DELTA RANK'
-    header[-3] = 'IS_SUPER'
     formattedRankTable =[header]
 
     #the gffs
@@ -588,9 +694,9 @@ def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name
 
         #getting the genes
         geneList = []
-        geneList += line[9].split(',')
-        geneList += line[10].split(',')
-        geneList += line[11].split(',')
+        geneList += line[-1].split(',')
+        geneList += line[-2].split(',')
+        geneList += line[-3].split(',')
         geneList = [x for x in geneList if len(x) >0]
         geneList = utils.uniquify(geneList)
         geneString = string.join(geneList,',')
@@ -598,7 +704,7 @@ def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name
         bedLine = [line[1],line[2],line[3],line[0],line[-4]]
         
         #for gained
-        if float(line[6]) > cutOff:
+        if float(line[-8]) > cutOff and int(line[-4]) == 1:
             gffLine = [line[1],line[0],'',line[2],line[3],'','.','',geneString]
             gffWindowLine = [line[1],line[0],'',int(line[2])-window,int(line[3])+window,'','.','',geneString]
             gainedGFF.append(gffLine)
@@ -606,7 +712,7 @@ def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name
             geneStatus = name2
             gainedBed.append(bedLine)
         #for lost
-        elif float(line[6]) < (-1 * cutOff):
+        elif float(line[-8]) < (-1 * cutOff) and int(line[-4]) == 1:
             gffLine = [line[1],line[0],'',line[2],line[3],'','.','',geneString]
             gffWindowLine = [line[1],line[0],'',int(line[2])-window,int(line[3])+window,'','.','',geneString]
             lostGFF.append(gffLine)
@@ -615,7 +721,7 @@ def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name
             lostBed.append(bedLine)
         #for conserved
         else:
-            geneStatus = 'CONSERVED'
+            geneStatus = 'UNCHANGED'
             conservedBed.append(bedLine)
 
         #now fill in the gene Table
@@ -633,6 +739,24 @@ def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name
     #formatted table
     formattedFilename = "%s%s_%s_MERGED_%s_RANK_TABLE.txt" % (outputFolder,genome,mergeName,enhancerType)
     utils.unParseTable(formattedRankTable,formattedFilename,'\t')
+
+    #formatted diff table
+    rankEnhancerDiffTable = utils.parseTable(diffOutput,'\t')
+    
+    #make a new formatted table
+    header = rankEnhancerDiffTable[0]
+    formattedRankDiffTable =[header]
+
+    for line in rankEnhancerDiffTable[1:]:
+        #fixing the enhancer ID
+        line[0] = line[0].replace('_lociStitched','')
+        formattedRankDiffTable.append(line)
+
+
+    formattedDiffFilename = "%s%s_%s_MERGED_%s_RANK_DIFF_TABLE.txt" % (outputFolder,genome,mergeName,enhancerType)
+    utils.unParseTable(formattedRankDiffTable,formattedDiffFilename,'\t')
+
+
 
     #gffs
     gffFolder = pipeline_dfci.formatFolder(outputFolder+'gff/',True)
@@ -657,7 +781,13 @@ def finishRankOutput(dataFile,rankOutput,genome,mergeFolder,mergeName,name1,name
     utils.unParseTable(geneTable,geneFilename,'\t')
 
     #finally, move all of the plots to the output folder
-    cmd = "cp %s%s_ROSE/*.pdf %s%s_%s_MERGED_%s_DELTA.pdf" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
+    cmd = "cp %s%s_ROSE/*DELTA*.pdf %s%s_%s_MERGED_%s_DELTA.pdf" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
+    os.system(cmd)
+
+    cmd = "cp %s%s_ROSE/*REGION_GAINED*.pdf %s%s_%s_MERGED_%s_REGION_GAINED.pdf" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
+    os.system(cmd)
+
+    cmd = "cp %s%s_ROSE/*REGION_LOST*.pdf %s%s_%s_MERGED_%s_REGION_LOST.pdf" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
     os.system(cmd)
 
     cmd = "cp %s%s_ROSE/*RANK_PLOT.png %s%s_%s_MERGED_%s_RANK_PLOT.png" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
@@ -841,6 +971,10 @@ def main():
 
     allFile1 = roseDict1['AllEnhancer']
     allFile2 = roseDict2['AllEnhancer']
+    
+    regionFile1 = roseDict1['RegionMap']
+    regionFile2 = roseDict1['RegionMap']
+
 
     print('\tMERGING ENHANCERS AND CALLING ROSE')
     if superOnly:
@@ -857,7 +991,10 @@ def main():
         roseOutput = callMergeSupers(dataFile,allFile1,allFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground)
 
     print('\tMERGING ROSE OUTPUT')
-    mergedRoseOutput = mergeRoseSignal(roseOutput,name1,name2,namesList1,namesList2,useBackground)
+
+    mergedRoseOutput,normRoseOutput = mergeRoseSignal(dataFile,roseOutput,roseDict1,roseDict2,name1,name2,namesList1,namesList2,useBackground,medianScale)
+    
+
 
     print('\tCALCULATING ENHANCER DELTA AND MAKING PLOTS')
 
@@ -867,7 +1004,7 @@ def main():
     print(rcmd) 
     os.system(rcmd)
 
-    time.sleep(10)
+    #time.sleep(5)
     callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1)
 
     #rank the genes
@@ -897,9 +1034,27 @@ def main():
         print('ERROR: RANK PLOT SCRIPT FAILED TO RUN')
         sys.exit()
 
-    time.sleep(10)
+    print('MAKING REGION SIGNAL PLOTS AND FINDING DIFFERENTIAL REGIONS')
+    if utils.checkOutput(normRoseOutput):
+
+        rcmd = callRegionPlotRScript(normRoseOutput,name1,name2,namesList1,namesList2)
+        print(rcmd)
+        os.system(rcmd)
+    else:
+        print('ERROR: REGION PLOT SCRIPT FAILED TO RUN')
+        sys.exit()
+
+    #NOW MAP GENES
+    statOutput,diffOutput = callRoseGeneMapper_stats(mergedGFFFile,genome,parentFolder,namesList1)
+
+    if utils.checkOutput(statOutput):
+        print('FINISHED WITH GENE MAPPING')
+    else:
+        print('GENE MAPPING FAILED')
+        sys.exit()
 
     print('FINISHING OUTPUT')
-    finishRankOutput(dataFile,rankOutput,genome,parentFolder,mergeName,name1,name2,namesList1,namesList2,1,100000,superOnly,plotBam)
+    #finishRankOutput(dataFile,rankOutput,genome,parentFolder,mergeName,name1,name2,namesList1,namesList2,1,100000,superOnly,plotBam)
+    finishRankOutput(dataFile,statOutput,diffOutput,genome,parentFolder,mergeName,name1,name2,namesList1,namesList2,1.0,100000,superOnly,plotBam)
 
 main()
