@@ -199,7 +199,9 @@ for(i in 1:nrow(normMatrix_1)){
 	fold_vector = c(fold_vector,fold)
 }
 
-sig_rows = which(p.adjust(p_vector_wilcox,'fdr')<= 0.05)
+#sig_rows = which(p.adjust(p_vector_wilcox,'fdr')<= 0.05)
+sig_rows = which(p_vector_wilcox <= 0.05)
+
 fold_rows = which(abs(fold_vector) >= 1 )
 diff_rows = intersect(sig_rows,fold_rows)
 
@@ -249,12 +251,22 @@ lostRows = which(diffTable[,(ncol(diffTable)-4)] <= -1)
 rank_lost_out = gsub('REGION_MAP_NORM.txt','REGION_LOST.pdf',normFile)
 
 
+unchangedRows = which(newTable[,ncol(newTable)] ==0)
+unchanged_out = gsub('REGION_MAP_NORM.txt','REGION_UNCHANGED.pdf',normFile)
+
+
+
+
 pdf(file = rank_gained_out,width = plot_width ,height =8.5)
 rankPlotRegion(diffTable[gainedRows,],rankMatrixInverted_1, rankMatrixInverted_2,name1,name2,maxRank=100)
 dev.off()
 
 pdf(file = rank_lost_out,width = plot_width ,height =8.5)
 rankPlotRegion(diffTable[lostRows,],rankMatrixInverted_1, rankMatrixInverted_2,name1,name2,maxRank=100)
+dev.off()
+
+pdf(file = unchanged_out,width = plot_width ,height =8.5)
+rankPlotRegion(newTable[unchangedRows,],rankMatrixInverted_1, rankMatrixInverted_2,name1,name2,maxRank=100)
 dev.off()
 
 

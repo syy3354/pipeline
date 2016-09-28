@@ -1086,18 +1086,29 @@ class Bam:
     def __init__(self,bamFile):
         self._bam = bamFile
 
-    def getTotalReads(self,readType = 'mapped'):
-        command = '%s flagstat %s' % (samtoolsString,self._bam)
+        #get the number of reads use idxstats instead of flagstat
+        command = '%s idxstats %s' % (samtoolsString,self._bam)
         stats = subprocess.Popen(command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
         statLines = stats.stdout.readlines()
         stats.stdout.close()
-        if readType == 'mapped':
-            for line in statLines:
-                if line.count('mapped (') == 1:
 
-                    return int(line.split(' ')[0])
+        self._mapped_reads = sum([int(line.rstrip().split('\t')[-2]) for line in statLines])
+        self._total_reads = self._mapped_reads + int(statLines[-1].rstrip().split('\t')[-1])
+
+        #now get the readlength #check the first 1000 reads
+        cmd1 = subprocess.Popen(('samtools','view',self._bam), stdout=subprocess.PIPE)
+        reads = subprocess.check_output(('head','-n','1000'), stdin=cmd1.stdout)
+        reads_list = reads.split('\n')
+        self._read_lengths = uniquify([len(line.split('\t')[9]) for line in reads_list if len(line) >0])
+
+    def getTotalReads(self,readType = 'mapped'):
+        if readType == 'mapped':
+            return self._mapped_reads
         if readType == 'total':
-            return int(statLines[0].split(' ')[0])
+            return self._total_reads
+
+    def getReadLengths(self):
+        return self._read_lengths
 
     def convertBitwiseFlag(self,flag):
         if flag & 16:
@@ -1229,16 +1240,18 @@ class Bam:
 
         return len(reads)
 
-    def liquidateLocus(self,locus,sense='.'):
+    def liquidateLocus(self,locus,n=1,sense='.',extension=0,mmr=False):
 
-           bamliquidatorCmd = 'bamliquidator %s %s %s %s %s 1 200' % (self._bam, locus.chr(),
+        bamliquidatorCmd = 'bamliquidator %s %s %s %s %s %s %s' % (self._bam, locus.chr(),
                                                                      str(locus.start()), str(locus.end()),
-                                                                     sense)
+                                                                      sense,n,extension)
+        bamliquidatorOut = subprocess.Popen(bamliquidatorCmd, stdout = subprocess.PIPE, shell=True)
+        score = [int(x.rstrip()) for x in bamliquidatorOut.stdout.readlines()]
+        if mmr:
+            mmr_count = float(self._mapped_reads)/1000000
+            score = [round(x/mmr_count,4) for x in score]
 
-           bamliquidatorOut = subprocess.Popen(bamliquidatorCmd, stdout = subprocess.PIPE, shell=True)
-           score = bamliquidatorOut.communicate()[0]
-
-           return score
+        return score
 
 #==================================================================
 #========================MISC FUNCTIONS============================

@@ -229,7 +229,7 @@ def makeSEDict(enhancerFile,name,superOnly = True):
     return seDict
 
 
-def mergeCollections(enhancerFile1,enhancerFile2,name1,name2,output=''):
+def mergeCollections(enhancerFile1,enhancerFile2,name1,name2,output='',inputGFF=''):
 
     '''
     merges them collections
@@ -239,17 +239,21 @@ def mergeCollections(enhancerFile1,enhancerFile2,name1,name2,output=''):
 
     name2Collection = makeSECollection(enhancerFile2,name2)
 
-
-    #now merge them
-    mergedLoci = name1Collection.getLoci() + name2Collection.getLoci()
-
-    mergedCollection = utils.LocusCollection(mergedLoci,50)
-
-    #stitch the collection together
-    stitchedCollection = mergedCollection.stitchCollection()
-
-    stitchedLoci = stitchedCollection.getLoci()
     
+    if len(inputGFF) == 0:
+        #now merge them
+        mergedLoci = name1Collection.getLoci() + name2Collection.getLoci()
+
+        mergedCollection = utils.LocusCollection(mergedLoci,50)
+
+        #stitch the collection together
+        stitchedCollection = mergedCollection.stitchCollection()
+
+        stitchedLoci = stitchedCollection.getLoci()
+    else:
+        locusCollection = utils.gffToLocusCollection(inputGFF)
+        stitchedCollection = locusCollection.stitchCollection()
+        stitchedLoci = stitchedCollection.getLoci()
 
     #rename loci by presence in group1 or group2
 
@@ -326,7 +330,7 @@ def callRoseMerged(dataFile,mergedGFFFile,name1,name2,parentFolder,namesList1,na
     return pipeline_dfci.callRose2(dataFile,'',parentFolder,namesList,extraMap,mergedGFFFile,tss=0,stitch=0,bashFileName=roseBashFile,mask='',useBackground=False) #don't want additional background correction from the pipeline wrapper of rose
 
 
-def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground):
+def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground,inputGFF=''):
 
     '''
     this is the main run function for the script
@@ -347,7 +351,7 @@ def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,
     else:
         print("NO MERGED ROSE OUTPUT FOUND")
         print "MERGING ENHANCER REGIONS FROM %s and %s" % (superFile1,superFile2)
-        mergedGFF = mergeCollections(superFile1,superFile2,name1,name2,mergedGFFFile)
+        mergedGFF = mergeCollections(superFile1,superFile2,name1,name2,mergedGFFFile,inputGFF)
 
         #call rose on the merged regions
         roseBashFile = callRoseMerged(dataFile,mergedGFF,name1,name2,parentFolder,namesList1,namesList2,useBackground)
@@ -372,13 +376,16 @@ def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,
             return roseOutput
 
 
+
+
+
 def mergeRoseSignal(dataFile,roseOutput,roseDict1,roseDict2,name1,name2,namesList1,namesList2,useBackground,medianScale):
 
     '''
     takes the rose output and merges signal
     '''
 
-    regionMap = utils.parseTable(roseOutput,'\t')
+    initialMap = utils.parseTable(roseOutput,'\t')
     output_merged = string.replace(roseOutput,'MAP.txt','MAP_MERGED.txt')
     output_norm = string.replace(roseOutput,'MAP.txt','MAP_NORM.txt')
 
@@ -390,9 +397,9 @@ def mergeRoseSignal(dataFile,roseOutput,roseDict1,roseDict2,name1,name2,namesLis
         name1BackgroundColumns = range(len(namesList1 +namesList2),len(namesList1 + namesList2 + namesList1),1)
         name2BackgroundColumns = range(len(namesList1 +namesList2+namesList1),len(namesList1 + namesList2 + namesList1 + namesList2),1)
     
-    mergedMap = [regionMap[0][0:6] + ['%s_SIGNAL' % (name1),'%s_SIGNAL' % (name2)]]
-    normMap = [regionMap[0][0:6] + namesList1 + namesList2]
-    for line in regionMap[1:]: 
+    mergedMap = [initialMap[0][0:6] + ['%s_SIGNAL' % (name1),'%s_SIGNAL' % (name2)]]
+    normMap = [initialMap[0][0:6] + namesList1 + namesList2]
+    for line in initialMap[1:]: 
 
         signalVector = [float(x) for x in line[7:]]     #we ignore the 6th column
         if useBackground:
@@ -686,8 +693,12 @@ def finishRankOutput(dataFile,statOutput,diffOutput,genome,mergeFolder,mergeName
 
     #the genes
     geneTable =[['GENE','ENHANCER_ID','ENHANCER_CHROM','ENHANCER_START','ENHANCER_STOP',header[6],header[7],header[8],'STATUS']]
-
+    headerLength = len(rankEnhancerTable[0])
     for line in rankEnhancerTable[1:]:
+        #fix line lengths
+        if len(line) != headerLength:
+            line += ['']*(headerLength-len(line))
+
         #fixing the enhancer ID
         line[0] = line[0].replace('_lociStitched','')
         formattedRankTable.append(line)
@@ -704,7 +715,13 @@ def finishRankOutput(dataFile,statOutput,diffOutput,genome,mergeFolder,mergeName
         bedLine = [line[1],line[2],line[3],line[0],line[-4]]
         
         #for gained
+        #this applies both the statistical test chosen (default fdr <= 0.05) and the cutoff
+        #the cutoff is hard wired, but we can add an option to change the test
+        #stats are done in the R script. FDR norm can kinda suck if no genes are considered diff
+        print(line)
+        
         if float(line[-8]) > cutOff and int(line[-4]) == 1:
+
             gffLine = [line[1],line[0],'',line[2],line[3],'','.','',geneString]
             gffWindowLine = [line[1],line[0],'',int(line[2])-window,int(line[3])+window,'','.','',geneString]
             gainedGFF.append(gffLine)
@@ -741,7 +758,9 @@ def finishRankOutput(dataFile,statOutput,diffOutput,genome,mergeFolder,mergeName
     utils.unParseTable(formattedRankTable,formattedFilename,'\t')
 
     #formatted diff table
+    #possible that no genes are differential
     rankEnhancerDiffTable = utils.parseTable(diffOutput,'\t')
+    
     
     #make a new formatted table
     header = rankEnhancerDiffTable[0]
@@ -789,6 +808,10 @@ def finishRankOutput(dataFile,statOutput,diffOutput,genome,mergeFolder,mergeName
 
     cmd = "cp %s%s_ROSE/*REGION_LOST*.pdf %s%s_%s_MERGED_%s_REGION_LOST.pdf" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
     os.system(cmd)
+
+    cmd = "cp %s%s_ROSE/*REGION_LOST*.pdf %s%s_%s_MERGED_%s_REGION_UNCHANGED.pdf" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
+    os.system(cmd)
+
 
     cmd = "cp %s%s_ROSE/*RANK_PLOT.png %s%s_%s_MERGED_%s_RANK_PLOT.png" % (mergeFolder,namesList1[0],outputFolder,genome,mergeName,enhancerType)
     os.system(cmd)
@@ -861,15 +884,13 @@ def main():
 
     from optparse import OptionParser
 
-    usage = "usage: %prog [options] -g [GENOME] -d [DATAFILE] -r [ROSE_FOLDERS] -o [OUTPUT_FOLDER] --group1 [GROUP1_NAMES] --group2 [GROUP2_NAMES] --name1 [GROUP1_NAME] --name2 [GROUP2_NAME]"
+    usage = "usage: %prog [options] -g [GENOME] -d [DATAFILE] {-r [ROSE_FOLDERS] | -i [INPUT_GFF]} -o [OUTPUT_FOLDER] --group1 [GROUP1_NAMES] --group2 [GROUP2_NAMES] --name1 [GROUP1_NAME] --name2 [GROUP2_NAME]"
     parser = OptionParser(usage = usage)
     #required flags
     parser.add_option("-g","--genome", dest="genome",nargs = 1, default=None,
                       help = "Enter the genome build (HG18,HG19,MM9,RN4) for the project")
     parser.add_option("-d","--data", dest="data",nargs = 1, default=None,
                       help = "Enter the data file for the project")
-    parser.add_option("-r","--rose", dest="rose",nargs = 1, default=None,
-                      help = "Enter a comma separated list of meta rose folders")
     parser.add_option("-o","--output", dest="output",nargs = 1, default=None,
                       help = "Enter the output folder for the project")
     parser.add_option("--group1", dest="group1",nargs = 1, default=None,
@@ -880,6 +901,15 @@ def main():
                       help = "Enter a name for the first group of datasets")
     parser.add_option("--name2", dest="name2",nargs = 1, default=None,
                       help = "Enter a name for the second group of datasets")
+
+    #the input options
+    parser.add_option("-r","--rose", dest="rose",nargs = 1, default=None,
+                      help = "Enter a comma separated list of meta rose folders")
+
+    #optional input to supercede the meta rose (this is kinda sad but will fix later)
+    #should have had this code run clustering from the get go
+    parser.add_option("-i","--input", dest="input",nargs = 1, default=None,
+                      help = "enter a gff, bed or table of regions to perform dyanmic analysis on")
 
 
 
@@ -937,6 +967,15 @@ def main():
     #option for median scaling
     medianScale = options.median
 
+    #option for an overriding set of input regions
+    if len(options.input) >0:
+        #for now only works w/ gffs
+        print('Using %s as a set of predifined input regions' % (options.input))
+        inputGFF = options.input
+    else:
+        inputGFF= ''
+    
+
     plotBam = options.plot
     if options.all:
         superOnly = False
@@ -975,7 +1014,7 @@ def main():
     regionFile1 = roseDict1['RegionMap']
     regionFile2 = roseDict1['RegionMap']
 
-
+    #this is where we can toggle either using meta rose or clustering
     print('\tMERGING ENHANCERS AND CALLING ROSE')
     if superOnly:
         if len(superFile1) ==0:
@@ -984,11 +1023,11 @@ def main():
         if len(superFile2) == 0:
             print "ERROR: UNABLE TO FIND %s FILES IN %s" % (enhancerCallType,roseFolder2)
             sys.exit()
-        roseOutput = callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground)
+        roseOutput = callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground,inputGFF)
 
     else:
 
-        roseOutput = callMergeSupers(dataFile,allFile1,allFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground)
+        roseOutput = callMergeSupers(dataFile,allFile1,allFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground,inputGFF)
 
     print('\tMERGING ROSE OUTPUT')
 
@@ -1005,7 +1044,7 @@ def main():
     os.system(rcmd)
 
     #time.sleep(5)
-    callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1)
+    #callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1)
 
     #rank the genes
 
@@ -1043,9 +1082,11 @@ def main():
     else:
         print('ERROR: REGION PLOT SCRIPT FAILED TO RUN')
         sys.exit()
-
+    sys.exit()
     #NOW MAP GENES
     statOutput,diffOutput = callRoseGeneMapper_stats(mergedGFFFile,genome,parentFolder,namesList1)
+    #print(statOutput,diffOutput)
+
 
     if utils.checkOutput(statOutput):
         print('FINISHED WITH GENE MAPPING')
