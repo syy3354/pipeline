@@ -480,10 +480,11 @@ def loadDataTable(dataFile):
             fullBamPath = ''
         elif len(bamFileCandidates) > 1:
             print("MUTLIPLE BAM FILES IN %s WITH UNIQUE ID %s. NO BAM ASISGNED" % (bamFolder,line[1]))
+            print(bamFileCandidates)
             fullBamPath = ''
         else:
             bamFile = bamFileCandidates[0]
-            fullBamPath = '%s%s' % (bamFolder,bamFile)
+            fullBamPath = os.path.abspath('%s%s' % (bamFolder,bamFile))
             fullBaiPath = fullBamPath + '.bai'
             
         if len(fullBamPath) > 0:
@@ -546,43 +547,36 @@ def summary(dataFile,outputFile=''):
     dataList = dataDict.keys()
     dataList.sort()
     output= []
-    for name in dataList:
-        uniqueID = dataDict[name]['uniqueID']
-        #cmd = 'perl /nfs/young_ata/scripts/getTONY_info.pl -i %s -f 2' % (uniqueID)
-        #tonyQuery = os.popen(cmd)
-
-        #tonyName = tonyQuery.read().rstrip()
-        
-        #print('dataset name\t%s\tcorresponds to tony name\t%s' % (name,tonyName))
-        #output.append('dataset name\t%s\tcorresponds to tony name\t%s' % (name,tonyName))
-
     #for each dataset
+    isComplete =True
+    print('Summarizing data file: %s' %(dataFile))
+
     for name in dataList:
+        print(name)
         #check for the bam
         try:
             bam = open(dataDict[name]['bam'],'r')
             hasBam = True
         except IOError:
             hasBam = False
+            isComplete = False
 
-        #check for ylf
-        try:
-            ylf = open(dataDict[name]['ylf'],'r')
-            hasYlf = True
-        except IOError:
-            hasYlf = False
-
+            
         if hasBam == False:
             print('No .bam file for %s' % (name))
             output.append('No .bam file for %s' % (name))
-        if hasYlf == False:
-            print('No .ylf file for %s' % (name))
-            output.append('No .ylf file for %s' % (name))
+
+        #if a background is specifed, make sure it exists
+        background_name = dataDict[name]['background']
+        if len(background_name) > 0 and background_name != 'NONE':
+            if background_name in dataDict.keys() == False:
+                print('NO BACKGROUND %s DETECED FOR SAMPLE %s' % (background_name,name))
 
     if outputFile:
         unParseTable(output,outputFile,'')
 
-
+    if isComplete:
+        print('All datasets accounted for in %s\n\n' % (dataFile))
 def makeBamTable(dataFile,output):
 
     '''
@@ -1878,7 +1872,7 @@ def mapEnrichedToGFF(dataFile,setName,gffList,cellTypeList,enrichedFolder,mapped
 #===================MAPPING BAMS TO GFFS===================================
 #==========================================================================
 
-def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =False,rpm=True,nameList = []):
+def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =False,rpm=True,nameList = [],extension=200):
     
     '''
     for each gff maps all of the data and writes to a specific folder named after the gff
@@ -1935,7 +1929,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
             
 
             if overWrite:
-                cmd1 = "python %s/bamToGFF_turbo.py -e 200 -m %s -b %s -i %s -o %s" % (whereAmI,nBin,fullBamFile,gffFile,outFile)
+                cmd1 = "python %s/bamToGFF_turbo.py -e %s -m %s -b %s -i %s -o %s" % (whereAmI,extension,nBin,fullBamFile,gffFile,outFile)
                 if rpm:
                     cmd1 += ' -r'
                 cmd1 += ' &'
@@ -1947,7 +1941,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                     Foo = open(outFile,'r')
                     print('File %s Already Exists, not mapping' % (outFile))
                 except IOError:
-                    cmd1 = "python %s/bamToGFF_turbo.py -e 200 -m %s -b %s -i %s -o %s" % (whereAmI,nBin,fullBamFile,gffFile,outFile)
+                    cmd1 = "python %s/bamToGFF_turbo.py -e %s -m %s -b %s -i %s -o %s" % (whereAmI,extension,nBin,fullBamFile,gffFile,outFile)
                     if rpm:
                         cmd1 += ' -r'
                     cmd1 += ' &'
@@ -2082,10 +2076,10 @@ def mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [],e
             print ('mapping %s to %s' % (name,gffFile))
             #filter based on celltype
             fullBamFile = dataDict[name]['bam']
-            #what we want the eventual outfile to look like
-            outdir = formatFolder(outdirRoot + name,True)
-            outMatrixFile = outdir+gffName+'_'+name+'.txt'
-
+        
+            #output for the bamliquidator command
+            outdir = formatFolder(outdirRoot+name,True)  
+            outMatrixFile = outdir+'matrix.txt'
             
             if overWrite:
                 mapCmd = bamliquidator_path + " --sense . -e %s --match_bamToGFF -r %s -o %s %s &" % (extension,gffFile, outdir, fullBamFile)    
@@ -2094,6 +2088,7 @@ def mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [],e
 
             else:
                 try:
+                    print('checking for outfile %s' % (outMatrixFile))
                     Foo = open(outMatrixFile,'r')
                     print('File %s Already Exists, not mapping' % (outMatrixFile))
                 except IOError:
@@ -2101,7 +2096,7 @@ def mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [],e
                     print(mapCmd)
                     os.system(mapCmd)
 
-    time.sleep(10) #wait 10 seconds before checking for output
+    #time.sleep(10) #wait 10 seconds before checking for output
     #now initiate another giant loop to check for output and rename it
     for gffFile in gffList:
         
@@ -2172,7 +2167,7 @@ def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=Fals
 
     #now start filling in the signal dict
     gffName = gffFile.split('/')[-1].split('.')[0]
-    
+    print(gffName)
     for name in namesList:
 
         print("MAKING SIGNAL DICT FOR %s" % (name))
@@ -2183,7 +2178,7 @@ def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=Fals
         if checkOutput(mappedFile,.02,.02):
             print('FOUND MAPPED FILE FOR %s AT %s' % (name,mappedFile))
         else:   
-            mappedFile = '%s%s/%s_%s.gff' % (mappedFolder,gffName,gffName,name)
+            mappedFile = '%s%s/%s_%s.txt' % (mappedFolder,gffName,gffName,name)
         
         if checkOutput(mappedFile,.02,.02):
             print('FOUND MAPPED FILE FOR %s AT %s' % (name,mappedFile))
@@ -2197,9 +2192,10 @@ def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=Fals
         else:
             medianSignal = 1
         
+        
         for line in mappedTable[1:]:
 
-            signalDict[name][line[0]] = float(line[2])/medianSignal
+            signalDict[name][line[1]] = float(line[2])/medianSignal
 
     #now make the signal table
     signalTable = []
@@ -2207,7 +2203,7 @@ def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=Fals
     signalTable.append(header)
 
     for line in mappedTable[1:]:
-        locusID = line[0]
+        locusID = line[1]
         sigLine = line[0:2] + [signalDict[name][locusID] for name in namesList]
         signalTable.append(sigLine)
 
@@ -2437,6 +2433,7 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
 
     print cmd
     os.system(cmd)
+    return cmd
 
 #-------------------------------------------------------------------------#
 #                                                                         #

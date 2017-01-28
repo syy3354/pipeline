@@ -62,7 +62,7 @@ import numpy
 import re
 import time
 from distutils.spawn import find_executable
-
+from collections import defaultdict
 
 
 #================================================================================
@@ -341,7 +341,7 @@ def makeAverageTable(outputFolder,analysisName,useBackground = False):
 
 
 
-def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory):
+def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path=''):
     
     '''
     makes the final peak table with ebox info
@@ -377,9 +377,25 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
     tss_1kb_collection = utils.LocusCollection(tss_1kb_loci,50)
     tss_50kb_collection = utils.LocusCollection(tss_50kb_loci,50)
 
+    if len(tads_path) > 0:
+        print('LOADING TADS FROM %s' % (tads_path))
+        tad_collection = utils.importBoundRegion(tads_path,'tad')
+        use_tads = True
+        
+        #building a tad dict keyed by tad ID w/ genes in that tad provided
+        tad_dict = defaultdict(list)
+        for tss_locus in tss_1kb_loci:
+            overlapping_tads = tad_collection.getOverlap(tss_locus,'both')
+            for tad_locus in overlapping_tads:
+                tad_dict[tad_locus.ID()].append(tss_locus.ID())
+
+    else:
+        use_tads = False
 
     print('CLASSIFYING PEAKS')
     ticker = 0
+
+    no_tad_count = 0
     for i in range(len(peakGFF)):
         if ticker%1000 == 0:
             print(ticker)
@@ -452,11 +468,39 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
 
         #now find the overlapping and proximal genes
         #here each overlapping gene the tss 1kb locus overlaps the peak
-        overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_1kb_collection.getOverlap(lineLocus,'both')]
-        overlappingGenes = utils.uniquify(overlappingGenes)
- 
+
+        if use_tads:
+
+            tad_loci = tad_collection.getOverlap(lineLocus,'both')
+
+            tad_id_list = [tad_locus.ID() for tad_locus in tad_loci]
+            tad_genes = []
+            for tad_id in tad_id_list:
+                tad_genes+=tad_dict[tad_id]
+            if len(tad_genes) == 0:
+                #print('no tad for this region')
+                #print(gffLine)
+                no_tad_count+=1
+        else:
+            tad_genes=[]
+
+
+
+        if len(tad_genes) >0:
+            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_1kb_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]
+            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_50kb_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]        
+            # print('linked peak to tad genes')
+            # print([startDict[x]['name'] for x in tad_genes])
+            # print(tad_id_list)
+            # print(gffLine)
+            # print(overlappingGenes)
+            # print(proximalGenes)
+        else:
+            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_1kb_collection.getOverlap(lineLocus,'both')]
+            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_50kb_collection.getOverlap(lineLocus,'both')]        
+
+        overlappingGenes = utils.uniquify(overlappingGenes) 
         #here the tss 50kb locus overlaps the peak 
-        proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_50kb_collection.getOverlap(lineLocus,'both')]
         #overlap takes priority over proximal
         proximalGenes = [gene for gene in proximalGenes if overlappingGenes.count(gene) == 0]
         proximalGenes = utils.uniquify(proximalGenes)
@@ -470,6 +514,8 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
 
 
         peakTable.append(newLine)
+
+    print('Out of %s regions, %s were assigned to at least 1 tad' % (len(peakTable),no_tad_count))
     return peakTable
 
 
@@ -594,7 +640,7 @@ def callGSEA(outputFolder,analysisName,top):
     gseaOutputFolder = utils.formatFolder('%sgsea_top_all_c2' % (outputFolder),True)
     rptLabel = '%s_top_all' % (analysisName)
 
-    gseaCmd_all = '#java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s#PROMOTER_versus_DISTAL -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,gmxPath,rptLabel,gseaOutputFolder)
+    gseaCmd_all = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s#PROMOTER_versus_DISTAL -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,gmxPath,rptLabel,gseaOutputFolder)
 
     gseaBashFile.write(gseaCmd_all)
     gseaBashFile.write('\n')
@@ -727,6 +773,9 @@ def main():
 
     parser.add_argument("--top", dest="top", type=int,
                         help="Run the analysis on the top N genes by total signal. Default is 5000", required=False,default=5000)
+    parser.add_argument("--tads", dest="tads", type=str,
+                        help="Include a .bed of tad regions to restrict enhancer/gene association", required=False,default=None)
+
 
 
     args = parser.parse_args()
@@ -777,10 +826,25 @@ def main():
         if args.activity:
             activityPath = args.activity
             activityTable = utils.parseTable(activityPath,'\t')
-            geneList = [line[1] for line in activityTable]
+            
+            #try to find the column for refseq id
+            for i in range(len(activityTable[0])):
+                if str(activityTable[0][i]).count('NM_') > 0 or str(activityTable[0][i]).count('NR_') >0:
+                    ref_col = i
+
+            geneList = [line[ref_col] for line in activityTable] # this needs to be REFSEQ NM ID
             print('IDENTIFIED %s ACTIVE GENES' % (len(geneList)))
         else:
             geneList = []
+
+        #check if tads are being invoked
+        if args.tads:
+            print('LOADING TAD LOCATIONS FROM %s' % (args.tads))
+            use_tads = True
+            tads_path = args.tads
+        else:
+            use_tads = False
+            tads_path = ''
 
         print('LOADING ANNOTATION DATA FOR GENOME %s' % (genome))
         
@@ -824,11 +888,11 @@ def main():
 
         #first check if this has already been done
         peakTablePath = '%s%s_PEAK_TABLE.txt' % (outputFolder,analysisName)
-        if utils.checkOutput(peakTablePath,0.1,1):
+        if utils.checkOutput(peakTablePath,0.1,0.1):
             print('PEAK TABLE OUTPUT ALREADY EXISTS')
             peakTable = utils.parseTable(peakTablePath,'\t')
         else:
-            peakTable = makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory)        
+            peakTable = makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path)        
             utils.unParseTable(peakTable,peakTablePath,'\t')
 
         geneTable = makeGeneTable(peakTable,analysisName)        
@@ -853,12 +917,12 @@ def main():
         callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,top)
 
 
-        # print('DETECTING GSEA OUTPUT FOR ALL GENES')
-        # #for top 
-        # all_promoterTablePath,all_distalTablePath = detectGSEAOutput(analysisName,outputFolder,'all')
+        print('DETECTING GSEA OUTPUT FOR ALL GENES')
+        #for top 
+        all_promoterTablePath,all_distalTablePath = detectGSEAOutput(analysisName,outputFolder,'all')
 
-        # print('MAKING NES PLOTS FOR ALL GENES')
-        # callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,'all')
+        print('MAKING NES PLOTS FOR ALL GENES')
+        callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,'all')
 
 
         #these files can be parsed to make the NES plot

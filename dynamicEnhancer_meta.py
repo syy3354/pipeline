@@ -234,10 +234,14 @@ def mergeCollections(enhancerFile1,enhancerFile2,name1,name2,output='',inputGFF=
     '''
     merges them collections
     '''
-
+    print(enhancerFile1)
+    print(enhancerFile2)
     name1Collection = makeSECollection(enhancerFile1,name1)
 
     name2Collection = makeSECollection(enhancerFile2,name2)
+    print(len(name1Collection))
+    print(len(name2Collection))
+    print('weeeeeee')
 
     
     if len(inputGFF) == 0:
@@ -351,8 +355,10 @@ def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,
     else:
         print("NO MERGED ROSE OUTPUT FOUND")
         print "MERGING ENHANCER REGIONS FROM %s and %s" % (superFile1,superFile2)
-        mergedGFF = mergeCollections(superFile1,superFile2,name1,name2,mergedGFFFile,inputGFF)
 
+        mergedGFF = mergeCollections(superFile1,superFile2,name1,name2,mergedGFFFile,inputGFF)
+        print('just merged gff')
+        print(mergedGFF)
         #call rose on the merged regions
         roseBashFile = callRoseMerged(dataFile,mergedGFF,name1,name2,parentFolder,namesList1,namesList2,useBackground)
         print('merged rose bash file %s' % (roseBashFile))
@@ -384,8 +390,9 @@ def mergeRoseSignal(dataFile,roseOutput,roseDict1,roseDict2,name1,name2,namesLis
     '''
     takes the rose output and merges signal
     '''
-
+    print(roseOutput)
     initialMap = utils.parseTable(roseOutput,'\t')
+    print(len(initialMap))
     output_merged = string.replace(roseOutput,'MAP.txt','MAP_MERGED.txt')
     output_norm = string.replace(roseOutput,'MAP.txt','MAP_NORM.txt')
 
@@ -968,7 +975,7 @@ def main():
     medianScale = options.median
 
     #option for an overriding set of input regions
-    if len(options.input) >0:
+    if options.input != None:
         #for now only works w/ gffs
         print('Using %s as a set of predifined input regions' % (options.input))
         inputGFF = options.input
@@ -1026,9 +1033,13 @@ def main():
         roseOutput = callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground,inputGFF)
 
     else:
+        print('doing it right')
+        print(allFile1)
+        print(allFile2)
 
         roseOutput = callMergeSupers(dataFile,allFile1,allFile2,name1,name2,mergeName,genome,parentFolder,namesList1,namesList2,useBackground,inputGFF)
-
+        print('this is rose output')
+        print(roseOutput)
     print('\tMERGING ROSE OUTPUT')
 
     mergedRoseOutput,normRoseOutput = mergeRoseSignal(dataFile,roseOutput,roseDict1,roseDict2,name1,name2,namesList1,namesList2,useBackground,medianScale)
@@ -1043,8 +1054,8 @@ def main():
     print(rcmd) 
     os.system(rcmd)
 
-    #time.sleep(5)
-    #callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1)
+    time.sleep(5)
+    callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1)
 
     #rank the genes
 
@@ -1066,6 +1077,7 @@ def main():
     #make the rank plot
     print('MAKING RANK PLOTS')
     if utils.checkOutput(rankOutput):
+        print('checking for rank output %s' % (rankOutput))
         rcmd = callRankRScript(rankOutput,name1,name2,superFile1,superFile2)
         print(rcmd)
         os.system(rcmd)
@@ -1075,27 +1087,29 @@ def main():
 
     print('MAKING REGION SIGNAL PLOTS AND FINDING DIFFERENTIAL REGIONS')
     if utils.checkOutput(normRoseOutput):
-
+        print('checking for %s' % (normRoseOutput))
         rcmd = callRegionPlotRScript(normRoseOutput,name1,name2,namesList1,namesList2)
         print(rcmd)
         os.system(rcmd)
     else:
         print('ERROR: REGION PLOT SCRIPT FAILED TO RUN')
         sys.exit()
-    sys.exit()
+
     #NOW MAP GENES
+    print('mapping genes to differential enhancers')
     statOutput,diffOutput = callRoseGeneMapper_stats(mergedGFFFile,genome,parentFolder,namesList1)
-    #print(statOutput,diffOutput)
+
 
 
     if utils.checkOutput(statOutput):
+        print('checking for gene mapping output %s' % (statOutput))
         print('FINISHED WITH GENE MAPPING')
     else:
         print('GENE MAPPING FAILED')
         sys.exit()
 
     print('FINISHING OUTPUT')
-    #finishRankOutput(dataFile,rankOutput,genome,parentFolder,mergeName,name1,name2,namesList1,namesList2,1,100000,superOnly,plotBam)
+    
     finishRankOutput(dataFile,statOutput,diffOutput,genome,parentFolder,mergeName,name1,name2,namesList1,namesList2,1.0,100000,superOnly,plotBam)
 
 main()

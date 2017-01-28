@@ -73,6 +73,10 @@ from collections import defaultdict
 #def bedToGFF(bed,output=''):
 #def gffToBed(gff,output= ''): <- converts standard UCSC gff format files to UCSC bed format files
 #def formatFolder(folderName,create=False): <- checks for the presence of any folder and makes it if create =True
+#def getParentFolder(inputFile): <- Returns the parent folder for any file
+#def checkOutput(fileName, waitTime = 1, timeOut = 30): <- checks for a file to be completed and returns True
+
+#def link_files(file_string,source_dir,dest_dir): <- creates sym links for all files of a certain type
 
 #2. Gene annotation functions
 #def makeStartDict(annotFile,geneList = []): <- takes a standard UCSC refseq table and creates a dictionary keyed by refseq ID with info about each transcript
@@ -205,8 +209,11 @@ def bedToGFF(bed, output=''):
     gff = []
 
     for line in bed:
-
-        gffLine = [line[0],line[3],'',line[1],line[2],line[4],line[5],'',line[3]]
+        try:
+            gffLine = [line[0],line[3],'',line[1],line[2],line[4],line[5],'',line[3]]
+        except IndexError:
+            print(line)
+            sys.exit()
         gff.append(gffLine)
 
 
@@ -261,9 +268,9 @@ def checkOutput(fileName, waitTime = 1, timeOut = 30):
     if it exists, returns True
     default is 1 minute with a max timeOut of 30 minutes
     '''
-    waitTime = int(waitTime*60)
+    waitTime = int(waitTime*60) +0.1
 
-    timeOut = int(timeOut*60)
+    timeOut = int(timeOut*60) + 0.1
 
     maxTicker = timeOut/waitTime
     ticker = 0
@@ -272,7 +279,7 @@ def checkOutput(fileName, waitTime = 1, timeOut = 30):
     while not fileExists:
         try:
             size1 = os.stat(fileName).st_size
-            time.sleep(.5)
+            time.sleep(.1)
             size2 = os.stat(fileName).st_size
             if size1 == size2:
                 fileExists = True
@@ -305,6 +312,35 @@ def getParentFolder(inputFile):
     else:
         return parentFolder
 
+
+
+def link_files(file_string,source_dir,dest_dir):
+
+    '''
+    sym links all the files in the source directory to the destination directory
+    file_string is a unique identifier string for getting your file_names
+    '''
+    source_dir = formatFolder(source_dir)
+    dest_dir = formatFolder(dest_dir)
+
+    find_cmd = "find %s -type f -name '%s'" % (source_dir,file_string)
+    print(find_cmd)
+
+    find_process = subprocess.Popen(find_cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+    file_path_list = [path for path in find_process.communicate()[0].split('\n') if len(path) >0]
+
+    print(file_path_list)
+
+    for path in file_path_list:
+        
+        #get the actual file name
+        file_name = path.split('/')[-1]
+        
+        #symlinkn command
+        sym_cmd = 'ln -s %s %s%s' % (path,dest_dir,file_name)
+        print(sym_cmd)
+
+        os.system(sym_cmd)
 
 #==================================================================
 #===================ANNOTATION FUNCTIONS===========================
@@ -528,6 +564,8 @@ def importBoundRegion(boundRegionFile,name):
         bed = False
     if bed:
         for line in bound:
+            if len(line) <3:
+                continue
             if ticker%1000 == 0:
                 print(ticker)
             lociList.append(Locus(line[0],int(line[1]),int(line[2]),'.',ID = name + '_' + str(ticker)))
@@ -622,7 +660,24 @@ class Locus:
     def checkRep(self):
         pass
     def gffLine(self): return [self.chr(),self.ID(),'',self.start(),self.end(),'',self.sense(),'',self.ID()]
-    def getConservation(self,phastConFolder):
+    def getTabixOut(self,bed):
+        '''
+        uses tabix and provides simplified output
+        '''
+        tabixString = 'tabix' #set the path/location of tabix
+
+        tabixCmd = '%s %s %s:%s-%s' % (tabixString,bed,self.chr(),self.start(),self.end())
+
+        tabixOut = subprocess.Popen(tabixCmd,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
+
+        tabixLines = tabixOut.stdout.readlines()
+        tabixOut.stdout.close()
+
+        tabixTable = [x.rstrip().split('\t') for x in tabixLines]
+        return tabixTable
+
+        
+    def getConservation(self,phastConFolder,returnFull = False):
         '''
         uses tabix to get a per base conservation score from an indexed conservation bedgraph
         '''
@@ -640,8 +695,10 @@ class Locus:
         phastLines = phast.stdout.readlines()
         phast.stdout.close()
 
+        
         phastTable = [x.rstrip().split('\t') for x in phastLines]
-
+        if returnFull:
+            return phastTable
         #print phastTable
         #set up a conservation sum
         phastSum = 0.0
@@ -1096,10 +1153,11 @@ class Bam:
         self._total_reads = self._mapped_reads + int(statLines[-1].rstrip().split('\t')[-1])
 
         #now get the readlength #check the first 1000 reads
-        cmd1 = subprocess.Popen(('samtools','view',self._bam), stdout=subprocess.PIPE)
-        reads = subprocess.check_output(('head','-n','1000'), stdin=cmd1.stdout)
-        reads_list = reads.split('\n')
-        self._read_lengths = uniquify([len(line.split('\t')[9]) for line in reads_list if len(line) >0])
+        view_command = '%s view %s chr1:1-10000000' % (samtoolsString,self._bam)
+        read_stats = subprocess.Popen(view_command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
+        read_statLines = read_stats.stdout.readlines()
+        read_stats.stdout.close()
+        self._read_lengths = uniquify([len(line.split('\t')[9]) for line in read_statLines if len(line) >0])
 
     def getTotalReads(self,readType = 'mapped'):
         if readType == 'mapped':
