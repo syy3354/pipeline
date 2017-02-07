@@ -45,23 +45,21 @@ import sys
 
 print "Using python version %s" % sys.version
 
+import os
+whereAmI = os.path.dirname(os.path.realpath(__file__))
 
 #importing utils package
-sys.path.append('/home/chazlin/src/pipeline/')
+sys.path.append(whereAmI)
 
 import argparse
 import cPickle
 import utils
-import pipeline_dfci
-import subprocess
-import os
 import string
 import tempfile
 import zlib
 import numpy
 import re
 import time
-from distutils.spawn import find_executable
 from collections import defaultdict
 
 
@@ -70,20 +68,8 @@ from collections import defaultdict
 #================================================================================
 
 #add locations of files and global parameters in this section
-whereAmI = os.path.dirname(os.path.realpath(__file__))
 
 bamliquidator_path = 'bamliquidator_batch.py'
-
-#using a paramater dictionary in liue of a yaml or json for now
-
-
-
-paramDict = {'cpgPath': '/grail/projects/mycn_cyl/beds/cpg_islands.bed',
-
-             
-             }
-
-
 
 #================================================================================
 #===================================CLASSES======================================
@@ -110,15 +96,7 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         'RN6': 'annotation/rn6_refseq.ucsc',
         }
 
-    genomeDirectoryDict = {
-        'HG19':'/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
-        'RN6':'/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
-        }
-        
-    genomeDirectory = genomeDirectoryDict[string.upper(genome)]
-
     annotFile = whereAmI + '/' + genomeDict[string.upper(genome)]
-
 
     if not skip_cache:
         # Try loading from a cache, if the crc32 matches
@@ -158,7 +136,7 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         with open(cache_file_path, 'wb') as cache_fh:
             cPickle.dump((startDict, tssCollection), cache_fh, cPickle.HIGHEST_PROTOCOL)
 
-    return startDict, tssCollection, genomeDirectory
+    return startDict, tssCollection
 
 
 
@@ -168,7 +146,6 @@ def splitRegions(inputGFF,tssCollection):
 
     #if even a single coordinate is shared with the +/-1kb 
     splitGFF = []
-    debugCount = 0
     for line in inputGFF:
 
         chrom = line[0]
@@ -341,7 +318,7 @@ def makeAverageTable(outputFolder,analysisName,useBackground = False):
 
 
 
-def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path=''):
+def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path=''):
     
     '''
     makes the final peak table with ebox info
@@ -357,7 +334,7 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
     signalTable = utils.parseTable(averageTablePath,'\t')
 
     print('LOADING CPGS ISLANDS')
-    cpgBed = utils.parseTable(paramDict['cpgPath'],'\t')
+    cpgBed = utils.parseTable(bedFile,'\t')
     cpgLoci = []
     for line in cpgBed:
         cpgLoci.append(utils.Locus(line[0],line[1],line[2],'.',line[-1]))
@@ -617,13 +594,13 @@ def callRWaterfall(geneTablePath,outputFolder,analysisName,top):
         sys.exit()
 
 
-def callGSEA(outputFolder,analysisName,top):
+def callGSEA(gseaPath, gmxPath, outputFolder,analysisName,top):
 
     '''
     runs C2 GSEA
     '''
-    gseaPath = '/usr/local/bin/gsea/gsea2-2.2.2.jar'
-    gmxPath = '/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
+    #gseaPath = '/usr/local/bin/gsea/gsea2-2.2.2.jar'
+    #gmxPath = '/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
 
 
     gseaBashFilePath = '%s%s_GSEA_cmd.sh' % (outputFolder,analysisName)
@@ -749,8 +726,6 @@ def main():
                         help="Enter .gff or .bed file of regions to analyze", required=True)
     parser.add_argument("-g", "--genome", dest="genome", type=str,
                         help="specify a genome, HG18,HG19,MM8,MM9,MM10,RN6 are currently supported", required=True)
-    
-
     # output flag
     parser.add_argument("-o", "--output", dest="output", type=str,
                         help="Enter the output folder.", required=True)
@@ -776,18 +751,23 @@ def main():
     parser.add_argument("--tads", dest="tads", type=str,
                         help="Include a .bed of tad regions to restrict enhancer/gene association", required=False,default=None)
 
-
+    #add by Quanhu Sheng
+    parser.add_argument("--genomeDirectory", dest="genomeDirectory", type=str,
+                        help="Enter the folder contains chromosome sequence in fasta format", required=True)
+    #gseaPath = '/usr/local/bin/gsea/gsea2-2.2.2.jar'
+    #gmxPath = '/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
+    parser.add_argument("--gseaPath", dest="gseaPath", type=str, help="Enter GSEA jar file location", required=True)
+    parser.add_argument("--gmxPath", dest="gmxPath", type=str, help="Enter GSEA gmt file location, such as c2.all.v5.1.symbols.gmt", required=True)
+    parser.add_argument("--cpgPath", dest="cpgPath", type=str, help="Enter cpg coordinates in bed format", required=True)
 
     args = parser.parse_args()
 
     print(args)
 
     #minimum arguments needed to proceed
-    if args.bam and args.input and args.genome and args.output:
-
+    if args.bam and args.input and args.genome and args.genomeDirectory and args.output and args.gseaPath and args.gmxPath and args.cpgPath:
         #top analysis subset
         top = args.top
-
 
         #input genome
         genome = args.genome
@@ -840,16 +820,16 @@ def main():
         #check if tads are being invoked
         if args.tads:
             print('LOADING TAD LOCATIONS FROM %s' % (args.tads))
-            use_tads = True
             tads_path = args.tads
         else:
-            use_tads = False
             tads_path = ''
 
         print('LOADING ANNOTATION DATA FOR GENOME %s' % (genome))
         
+        genomeDirectory=args.genomeDirectory
+        
         #important here to define the window
-        startDict,tssCollection,genomeDirectory = loadAnnotFile(genome,window,geneList,True)
+        startDict,tssCollection = loadAnnotFile(genome,window,geneList,True)
         print(len(startDict))
 
         #now we need to split the input region 
@@ -892,7 +872,7 @@ def main():
             print('PEAK TABLE OUTPUT ALREADY EXISTS')
             peakTable = utils.parseTable(peakTablePath,'\t')
         else:
-            peakTable = makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path)        
+            peakTable = makePeakTable(args.cpgPath,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path)        
             utils.unParseTable(peakTable,peakTablePath,'\t')
 
         geneTable = makeGeneTable(peakTable,analysisName)        
@@ -906,7 +886,7 @@ def main():
 
         #now let's call gsea
         print('RUNNING GSEA ON C2')
-        callGSEA(outputFolder,analysisName,top)        
+        callGSEA(args.gseaPath, args.gmxPath, outputFolder,analysisName,top)        
 
         
         print('DETECTING GSEA OUTPUT FOR TOP %s GENES' % (top))
@@ -919,7 +899,7 @@ def main():
 
         print('DETECTING GSEA OUTPUT FOR ALL GENES')
         #for top 
-        all_promoterTablePath,all_distalTablePath = detectGSEAOutput(analysisName,outputFolder,'all')
+        detectGSEAOutput(analysisName,outputFolder,'all')
 
         print('MAKING NES PLOTS FOR ALL GENES')
         callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,'all')
