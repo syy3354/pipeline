@@ -350,8 +350,9 @@ def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genom
     tss_1kb_loci = []
     tss_50kb_loci = []
     for refID in geneList:
-        tss_1kb_loci.append(utils.makeTSSLocus(refID,startDict,1000,1000))
-        tss_50kb_loci.append(utils.makeTSSLocus(refID,startDict,50000,50000))
+        if refID in startDict:
+            tss_1kb_loci.append(utils.makeTSSLocus(refID,startDict,1000,1000))
+            tss_50kb_loci.append(utils.makeTSSLocus(refID,startDict,50000,50000))
 
     #make a 1kb flanking and 50kb flanking collection
     tss_1kb_collection = utils.LocusCollection(tss_1kb_loci,50)
