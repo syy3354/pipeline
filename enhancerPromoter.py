@@ -127,7 +127,10 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
     startDict = utils.makeStartDict(annotFile, geneList)
     tssLoci =[]
     for gene in geneList:
-        tssLoci.append(utils.makeTSSLocus(gene,startDict,window,window))
+        if gene in startDict:
+            tssLoci.append(utils.makeTSSLocus(gene,startDict,window,window))
+        else:
+            print('\tWARNING: gene %s not in annotation database. Ignoring.' % gene)
 
     tssCollection = utils.LocusCollection(tssLoci,50)
 
