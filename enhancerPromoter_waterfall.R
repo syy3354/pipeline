@@ -12,7 +12,7 @@ print(args)
 geneTablePath = args[3]
 outputFolder = args[4]
 analysisName = args[5]
-top = as.numeric(args[6])
+top = args[6]
 
 #=========================================================
 #===========================DEBUG SECTION=================
@@ -311,8 +311,9 @@ geneTable = read.delim(geneTablePath,sep='\t')
 plotContribution(geneTable,analysisName,outputFolder)
 runWaterfall(geneTable,analysisName,outputFolder)
 
-
-#top N
-plotContribution(geneTable,analysisName,outputFolder,as.numeric(top)) 
-runWaterfall(geneTable,analysisName,outputFolder,as.numeric(top))
+if(top != 'all'){
+  #top N
+  plotContribution(geneTable,analysisName,outputFolder,as.numeric(top)) 
+  runWaterfall(geneTable,analysisName,outputFolder,as.numeric(top))
+}
 
