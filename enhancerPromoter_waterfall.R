@@ -44,8 +44,7 @@ plotContribution <- function(geneTable,analysisName,outputFolder,top=0,nBins=100
 	if(top == 0){
 		top = nrow(geneTable)
 		topString = 'all'
-	}
-	else if(top > nrow(geneTable)){
+	}else if(top > nrow(geneTable)){
 		top = nrow(geneTable)
 		topString = 'all'			
 	}else{
@@ -127,11 +126,11 @@ runWaterfall <- function(geneTable,analysisName,outputFolder,top=0,geneList = c(
 	if(top == 0){
 		top = nrow(geneTable)
 		topString = 'all'
-	}else if(top > nrow(geneTable)){
-		top = nrow(geneTable)
-		topString = 'all'			
-	}else{
-		topString = as.character(top)
+	}else {
+    topString = as.character(top)
+	  if(top > nrow(geneTable)){
+	    top = nrow(geneTable)
+	  }
 	}
 
 	#get the signal for tss, distal and total
