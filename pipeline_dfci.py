@@ -198,7 +198,8 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #FORMATTING MAPPING SIGNAL
 #def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=False,output =''):
 
-
+#WRAPPING MAPPER
+#def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianNorm=False,output=''):
 #MAKING GFF LISTS
 #def makeGFFListFile(mappedEnrichedFile,setList,output,annotFile=''):
 
@@ -2412,7 +2413,43 @@ def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=Fals
         unParseTable(signalTable,output,'\t')
         return signalTable
 
+#==========================================================================
+#============================MAPPING WRAPPER===============================
+#==========================================================================
 
+def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianNorm=False,output=''):
+
+    '''
+    making a normalized binding signal table at all regions
+    '''
+
+    #since each bam has different read lengths, important to carefully normalize quantification
+    dataDict = loadDataTable(dataFile)
+    dataFile_name = dataFile.split('/')[-1].split('.')[0]
+
+    if len(names_list) == 0:
+        names_list = dataDict.keys()
+    names_list.sort()
+    
+    for name in names_list:
+        bam = Bam(dataDict[name]['bam'])
+        read_length = bam.getReadLengths()[0]
+        bam_extension = 200-read_length
+        print('For dataset %s using an extension of %s' % (name,bam_extension))
+        mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [name],extension=bam_extension,rpm=True)
+
+    #want a signal table of all datasets to each gff
+    print('Writing signal tables for each gff:')
+    for gffFile in gffList:
+        gffName = gffFile.split('/')[-1].split('.')[0]
+        if len(output) == 0:
+            signal_table_path = '%s%s_%s_SIGNAL.txt' % (signalFolder,gffName,dataFile_name)
+        else:
+            signal_table_path = output
+        print(signal_table_path)
+        makeSignalTable(dataFile,gffFile,mappedFolder,names_list,medianNorm,output =signal_table_path)
+
+    return signal_table_path
 
 #==========================================================================
 #===================MAKING GFF LISTS=======================================
