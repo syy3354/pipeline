@@ -774,7 +774,7 @@ def makeBowtieBashJobs(dataFile,namesList = [],launch=True,overwrite=False,param
                 cmd = "bash %s%s_bwt2.sh &" % (outputFolder,uniqueID)
                 os.system(cmd)
 
-def makeBowtieBashSlurmJobs(dataFile,namesList = [],launch=True,overwrite=False,pCount=1):
+def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,pCount=1):
 
     '''
     makes a mapping bash script and launches
