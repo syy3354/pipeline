@@ -233,7 +233,8 @@ def gffToBed(gff,output= ''):
     '''
     bed = []
     for line in gff:
-        newLine = [line[0],line[3],line[4],line[1],0,line[6]]
+        coords = [int(line[3]),int(line[4])]
+        newLine = [line[0],min(coords),max(coords),line[1],0,line[6]]
         bed.append(newLine)
     if len(output) == 0:
         return bed
@@ -1153,7 +1154,7 @@ class Bam:
         self._total_reads = self._mapped_reads + int(statLines[-1].rstrip().split('\t')[-1])
 
         #now get the readlength #check the first 1000 reads
-        view_command = '%s view %s chr1:1-10000000' % (samtoolsString,self._bam)
+        view_command = '%s view %s chr1:10000000-20000000' % (samtoolsString,self._bam)
         read_stats = subprocess.Popen(view_command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
         read_statLines = read_stats.stdout.readlines()
         read_stats.stdout.close()
