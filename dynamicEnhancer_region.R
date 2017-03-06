@@ -34,16 +34,16 @@
 
 args <- commandArgs()
 
-print(args[3:7])
+print(args)
 
-normFile = args[3]
+normFile = args[6]
 
 
-name1 = args[4]
-name2 = args[5]
+name1 = args[7]
+name2 = args[8]
 
-group1_length = as.numeric(args[6])
-group2_length = as.numeric(args[7])
+group1_length = as.numeric(args[9])
+group2_length = as.numeric(args[10])
 
 
 #===========================================================
