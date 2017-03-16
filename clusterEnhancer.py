@@ -50,6 +50,9 @@ import string
 import numpy
 import os
 
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+pipeline_dir = whereAmI + '/'
+
 
 #==========================================================================
 #============================PARAMETERS====================================
@@ -468,7 +471,7 @@ def callRScript(genome,outputFolder,analysisName,signalTableFile):
             
     clusterTable = "%s%s_%s_clusterTable.txt" % (outputFolder,genome,analysisName)
 
-    rCmd = 'R --no-save %s %s %s %s < /storage/cylin/home/cl6/pipeline/clusterEnhancer.R' % (genome,outputFolder,analysisName,signalTableFile)
+    rCmd = 'Rscript %sclusterEnhancer.R %s %s %s %s' % (pipeline_dir,genome,outputFolder,analysisName,signalTableFile)
     print("Calling command %s" % rCmd)
 
     os.system(rCmd)

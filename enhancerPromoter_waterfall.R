@@ -9,10 +9,10 @@
 
 args = commandArgs()
 print(args)
-geneTablePath = args[3]
-outputFolder = args[4]
-analysisName = args[5]
-top = as.numeric(args[6])
+geneTablePath = args[6]
+outputFolder = args[7]
+analysisName = args[8]
+top = as.numeric(args[9])
 
 #=========================================================
 #===========================DEBUG SECTION=================

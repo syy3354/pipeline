@@ -363,7 +363,7 @@ def callDeltaRScript(mergedGFFFile,parentFolder,dataFile,name1,name2,allFile1,al
     #print(stitchedFile)
     os.chdir(pipelineDir)
 
-    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_plot.R" % (stitchedFile,name1,name2,median1,median2)
+    rcmd = "Rscript %sdynamicEnhancer_plot.R %s %s %s %s %s" % (pipelineDir,stitchedFile,name1,name2,median1,median2)
 
     return rcmd
 
@@ -382,7 +382,7 @@ def callRankRScript(enhancerRankFile,name1,name2,superFile1,superFile2):
 
 
     os.chdir(pipelineDir)
-    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_rank.R" % (enhancerRankFile,name1,name2,nSuper1,nSuper2)
+    rcmd = "Rscript %sdynamicEnhancer_rank.R %s %s %s %s %s" % (pipelineDir,enhancerRankFile,name1,name2,nSuper1,nSuper2)
 
     return rcmd
 

@@ -21,6 +21,9 @@ import subprocess
 from collections import defaultdict
 
 
+# Get the script's full local path
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+pipeline_dir = whereAmI + '/'
 
 
 #==================================================================
@@ -587,12 +590,12 @@ def main():
 
         rankbyName = options.rankby.split('/')[-1]
         controlName = options.control.split('/')[-1]
-        cmd = 'R --no-save %s %s %s %s < ROSE2_callSuper.R' % (outFolder, outputFile1, inputName, controlName)
+        cmd = 'Rscript %sROSE2_callSuper.R %s %s %s %s' % (pipeline_dir,outFolder, outputFile1, inputName, controlName)
 
     else:
         rankbyName = options.rankby.split('/')[-1]
         controlName = 'NONE'
-        cmd = 'R --no-save %s %s %s %s < ROSE2_callSuper.R' % (outFolder, outputFile1, inputName, controlName)
+        cmd = 'Rscript %sROSE2_callSuper.R %s %s %s %s' % (pipeline_dir,outFolder, outputFile1, inputName, controlName)
     print(cmd)
 
     os.system(cmd)

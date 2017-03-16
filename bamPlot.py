@@ -285,7 +285,7 @@ def callRPlot(nameTable,diagramTable,plotTable,yScale,plotStyle,fileName):
     calls the R plotting thingy
     '''
 
-    cmd = 'R --no-save %s %s %s %s %s %s < %sbamPlot.R' % (nameTable,diagramTable,plotTable,yScale,plotStyle,fileName,pipeline_dir)
+    cmd = 'Rscript %sbamPlot.R %s %s %s %s %s %s' % (pipeline_dir,nameTable,diagramTable,plotTable,yScale,plotStyle,fileName)
     print('calling command %s' % (cmd))
     os.system(cmd)
 

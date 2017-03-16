@@ -2877,7 +2877,7 @@ def callHeatPlotOrdered(dataFile,gffFile,namesList,orderByName,geneListFile,outp
         color = dataDict[name]['color']
         output = outputFolder + '%s_%s_%s_order.png' % (gffName,name,orderByName)
 
-        cmd = "R --no-save %s %s %s %s %s" % (referenceMappedGFF,mappedGFF,color,output,geneListFile)
+        cmd = "Rscript %sheatMapOrdered.R %s %s %s %s %s" % (pipelineFolder,referenceMappedGFF,mappedGFF,color,output,geneListFile)
         if relative:
             cmd += ' 1'
         else:
@@ -2886,8 +2886,8 @@ def callHeatPlotOrdered(dataFile,gffFile,namesList,orderByName,geneListFile,outp
         #now add the background stuff
         cmd += ' %s' % (backgroundGFF)
 
-        #now finish the command
-        cmd += ' < %s/heatMapOrdered.R &' % (whereAmI)
+
+
 
         print(cmd)
         os.system(cmd)
@@ -3253,7 +3253,7 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
 
 
     
-    rCmd = '#R --no-save %s %s %s %s TRUE < %snormalizeRNASeq.R\n' % (geneFPKMFile,rOutputFolder,analysisName,namesString,pipelineFolder)
+    rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s TRUE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
 
     bashFile.write(rCmd)
     bashFile.close()
@@ -3388,7 +3388,8 @@ def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[
 
 
 
-    rCmd = '#R --no-save %s %s %s %s TRUE < %snormalizeRNASeq.R\n' % (geneFPKMFile,rOutputFolder,analysisName,namesString,pipelineFolder)
+
+    rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s TRUE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
 
     bashFile.write(rCmd)
     bashFile.close()

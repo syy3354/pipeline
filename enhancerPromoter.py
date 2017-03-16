@@ -72,6 +72,9 @@ from collections import defaultdict
 #add locations of files and global parameters in this section
 whereAmI = os.path.dirname(os.path.realpath(__file__))
 
+pipeline_dir = whereAmI + '/'
+
+
 bamliquidator_path = 'bamliquidator_batch.py'
 
 #using a paramater dictionary in liue of a yaml or json for now
@@ -601,7 +604,7 @@ def callRWaterfall(geneTablePath,outputFolder,analysisName,top):
     rBashFile = open(rBashFilePath,'w')
     rBashFile.write('#!/usr/bin/bash\n\n')
 
-    rCmd = 'R --no-save %s %s %s %s < %s/enhancerPromoter_waterfall.R' % (geneTablePath,outputFolder,analysisName,top,whereAmI)
+    rCmd = 'Rscript %senhancerPromoter_waterfall.R %s %s %s %s' % (pipeline_dir,geneTablePath,outputFolder,analysisName,top)
     rBashFile.write(rCmd)
     rBashFile.close()
     print('writing R plotting command to disk and calling %s' %(rBashFilePath))
@@ -711,7 +714,7 @@ def callR_GSEA(promoterTablePath,distalTablePath,outputFolder,analysisName,top):
     rBashFile = open(rBashFilePath,'w')
     rBashFile.write('#!/usr/bin/bash\n\n')
 
-    rCmd = 'R --no-save %s %s %s %s %s < %s/enhancerPromoter_gsea.R' % (promoterTablePath,distalTablePath,outputFolder,analysisName,top,whereAmI)
+    rCmd = 'Rscript %senhancerPromoter_gsea.R %s %s %s %s %s' % (pipeline_dir,promoterTablePath,distalTablePath,outputFolder,analysisName,top)
     rBashFile.write(rCmd)
     rBashFile.close()
     print('writing R plotting command to disk and calling %s' %(rBashFilePath))

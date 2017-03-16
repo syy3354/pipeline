@@ -33,12 +33,12 @@ library(graphics)
 
 args = commandArgs()
 print(args)
-geneFPKMFile = args[3]
-outputFolder = args[4]
-name = args[5]
-groupString = args[6]
+geneFPKMFile = args[6]
+outputFolder = args[7]
+name = args[8]
+groupString = args[9]
 
-if(args[7] == 'TRUE'){
+if(args[10] == 'TRUE'){
 	useERCC = TRUE
 	
 }else{

@@ -39,13 +39,13 @@
 #===================================================================
 
 args <- commandArgs()
-print(args[3:6])
+print(args)
 
 
-genome = args[3]
-outputFolder = args[4]
-analysisName = args[5]
-enhancerFile = args[6]
+genome = args[6]
+outputFolder = args[7]
+analysisName = args[8]
+enhancerFile = args[9]
 
 
 

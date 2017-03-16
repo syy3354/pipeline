@@ -25,16 +25,16 @@ library(graphics)
 
 args <- commandArgs()
 
-print(args[3:9])
+print(args)
 
-referenceGFF = args[3]
-mappedGFF = args[4]
-colorVector = as.numeric(unlist(strsplit(args[5],',')))
+referenceGFF = args[6]
+mappedGFF = args[7]
+colorVector = as.numeric(unlist(strsplit(args[8],',')))
 color = rgb(colorVector[1],colorVector[2],colorVector[3],maxColorValue=255)
-output = args[6]
-geneListFile = args[7]
-relative = as.numeric(args[8])
-backgroundGFF = args[9]
+output = args[9]
+geneListFile = args[10]
+relative = as.numeric(args[11])
+backgroundGFF = args[12]
 
 
 #getting the reference order and color spectrum

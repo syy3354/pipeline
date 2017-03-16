@@ -54,7 +54,7 @@ nBins = 200
 
 # Get the script's full local path
 whereAmI = os.path.dirname(os.path.realpath(__file__))
-
+pipeline_dir = whereAmI + '/'
 # script that takes in a list of bams, makes an intermediate table file, and then calls R to make the plot
 
 # updated for batching with bamliquidator magic
@@ -348,7 +348,7 @@ def callRPlot(summaryFile, outFile, yScale, plotStyle,multi):
     else:
         pageFlag = 'SINGLE_PAGE'
 
-    cmd = 'R --no-save %s %s %s %s %s < %s/bamPlot_turbo.R' % (summaryFile, outFile, yScale, plotStyle, pageFlag,whereAmI)
+    cmd = 'Rscript %sbamPlot_turbo.R %s %s %s %s' % (pipeline_dir,summaryFile, outFile, yScale, plotStyle, pageFlag)
     print('calling command %s' % (cmd))
     return cmd
 

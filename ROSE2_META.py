@@ -31,7 +31,7 @@ from collections import defaultdict
 whereAmI = os.path.dirname(os.path.realpath(__file__))
 print(whereAmI)
 # Get the script folder
-codeFolder = utils.formatFolder(whereAmI,False)
+pipeline_dir = utils.formatFolder(whereAmI,False)
 
 print('RUNNING ROSE2_META.py FROM %s' % (whereAmI))
 
@@ -531,12 +531,12 @@ def main():
     # GETTING THE CORRECT ANNOT FILE
 
     genomeDict = {
-        'HG18': '%s/annotation/hg18_refseq.ucsc' % (codeFolder),
-        'MM9': '%s/annotation/mm9_refseq.ucsc' % (codeFolder),
-        'HG19': '%s/annotation/hg19_refseq.ucsc' % (codeFolder),
-        'MM8': '%s/annotation/mm8_refseq.ucsc' % (codeFolder),
-        'MM10': '%s/annotation/mm10_refseq.ucsc' % (codeFolder),
-        'RN4': '%s/annotation/rn4_refseq.ucsc' % (codeFolder),
+        'HG18': '%s/annotation/hg18_refseq.ucsc' % (pipeline_dir),
+        'MM9': '%s/annotation/mm9_refseq.ucsc' % (pipeline_dir),
+        'HG19': '%s/annotation/hg19_refseq.ucsc' % (pipeline_dir),
+        'MM8': '%s/annotation/mm8_refseq.ucsc' % (pipeline_dir),
+        'MM10': '%s/annotation/mm10_refseq.ucsc' % (pipeline_dir),
+        'RN4': '%s/annotation/rn4_refseq.ucsc' % (pipeline_dir),
     }
 
     try:
@@ -719,7 +719,7 @@ def main():
 
     rankbyName = inputName + '_MERGED_SIGNAL'
     controlName = 'NONE'
-    cmd = 'R --no-save %s %s %s %s < %sROSE2_callSuper.R' % (outFolder, metaOutputFile, inputName, controlName,codeFolder)
+    cmd = 'Rscript %sROSE2_callSuper.R %s %s %s %s' % (pipeline_dir,outFolder, metaOutputFile, inputName, controlName,pipeline_dir)
     print(cmd)
 
     os.system(cmd)
@@ -729,19 +729,19 @@ def main():
     superTableFile = "%s_SuperEnhancers.table.txt" % (inputName)
 
     #for now don't use ranking bam to call top genes
-    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s &" % (codeFolder,genome, outFolder, superTableFile)
+    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s &" % (pipeline_dir,genome, outFolder, superTableFile)
     os.system(cmd)
 
 
     stretchTableFile = "%s_StretchEnhancers.table.txt" % (inputName)
  
-    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s &" % (codeFolder,genome, outFolder, stretchTableFile)
+    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s &" % (pipeline_dir,genome, outFolder, stretchTableFile)
     os.system(cmd)
 
 
     superStretchTableFile = "%s_SuperStretchEnhancers.table.txt" % (inputName)
 
-    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s &" % (codeFolder,genome, outFolder, superStretchTableFile)
+    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s &" % (pipeline_dir,genome, outFolder, superStretchTableFile)
     os.system(cmd)
 
 
