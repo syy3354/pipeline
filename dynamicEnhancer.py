@@ -47,7 +47,7 @@ print "Using python version %s" % sys.version
     
 
 #importing utils package
-sys.path.append('/home/chazlin/pipeline/')
+sys.path.append('/storage/cylin/home/cl6/pipeline/')
 import utils
 import pipeline_dfci
 import os
@@ -61,7 +61,7 @@ import numpy
 
 #add locations of files and global parameters in this section
 
-pipelineDir = '/home/chazlin/pipeline/'
+pipelineDir = '/storage/cylin/home/cl6/pipeline/'
 
 
 #dataFile = '/ark/home/cl512/projects/athero/EC_TABLE_FINAL.txt'

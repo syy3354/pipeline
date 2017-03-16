@@ -2906,8 +2906,9 @@ def callRose(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = []
     '''
 
     dataDict = loadDataTable(dataFile)
-    
-
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+    print(namesList)
     #a timestamp to name this pipeline batch of files
     timeStamp =datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     #a random integer ticker to help name files
@@ -2971,7 +2972,8 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
     '''
 
     dataDict = loadDataTable(dataFile)
-    
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
 
     #a timestamp to name this pipeline batch of files
     timeStamp =datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -3006,7 +3008,7 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
         else:
             macsFile = inputFile
         outputFolder = "%s%s_ROSE" % (parentFolder,name)
-
+        print(name)
         roseCmd = 'python ROSE2_main.py -g %s -i %s -r %s -o %s -t %s' % (genome,macsFile,bamFile,outputFolder,tss)
 
         if len(str(stitch)) > 0:
@@ -3038,6 +3040,8 @@ def callRose2Slurm(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMa
 
     #load the data dict
     dataDict = loadDataTable(dataFile)
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
 
 
     #for recording purposes

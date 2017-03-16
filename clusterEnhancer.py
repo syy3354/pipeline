@@ -42,7 +42,7 @@ can perform initial enhancer mapping or draw from a set of finished rose outputs
 
 
 import sys
-sys.path.append('/home/chazlin/pipeline/')
+sys.path.append('/storage/cylin/home/cl6/pipeline/')
 
 import pipeline_dfci
 import utils
@@ -468,7 +468,7 @@ def callRScript(genome,outputFolder,analysisName,signalTableFile):
             
     clusterTable = "%s%s_%s_clusterTable.txt" % (outputFolder,genome,analysisName)
 
-    rCmd = 'R --no-save %s %s %s %s < /home/chazlin/pipeline/clusterEnhancer.R' % (genome,outputFolder,analysisName,signalTableFile)
+    rCmd = 'R --no-save %s %s %s %s < /storage/cylin/home/cl6/pipeline/clusterEnhancer.R' % (genome,outputFolder,analysisName,signalTableFile)
     print("Calling command %s" % rCmd)
 
     os.system(rCmd)
@@ -675,8 +675,8 @@ def main():
         #=============GENE MAPPING BY CLUSTER=================
         #=====================================================
 
-        os.chdir('/home/chazlin/pipeline/')
-        cmd = 'python /home/chazlin/pipeline/ROSE2_geneMapper.py -g %s -i %s' % (genome,clusterTableFile)
+        os.chdir('/storage/cylin/home/cl6/pipeline/')
+        cmd = 'python /storage/cylin/home/cl6/pipeline/ROSE2_geneMapper.py -g %s -i %s' % (genome,clusterTableFile)
         os.system(cmd)
 
         print "FINISHED"

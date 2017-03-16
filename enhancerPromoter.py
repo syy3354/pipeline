@@ -47,7 +47,7 @@ print "Using python version %s" % sys.version
 
 
 #importing utils package
-sys.path.append('/home/chazlin/src/pipeline/')
+sys.path.append('/storage/cylin/home/cl6/src/pipeline/')
 
 import argparse
 import cPickle
