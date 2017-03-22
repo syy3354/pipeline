@@ -59,7 +59,7 @@ groupVector=unlist(strsplit(groupString,','))
 #=========================HARD CODED STUFF===============================
 #========================================================================
 #set as path of the ERCC_Controls_Analysis.txt
-erccTable = read.delim("/grail/genomes/ERCC_Technical_Data/ERCC_Controls_Analysis.txt")
+erccTable = read.delim("/storage/cylin/grail/genomes/ERCC_Technical_Data/ERCC_Controls_Analysis.txt")
 
 
 #========================================================================

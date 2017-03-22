@@ -23,6 +23,9 @@ sys.path.append(pipeline_dir)
 
 import utils
 
+
+
+
 import numpy
 import scipy
 import scipy.stats
@@ -940,6 +943,7 @@ def main():
 
 
     #output folder and analysis name
+    print(args.output)
     output_folder = utils.formatFolder(args.output,True)
     analysis_name = args.name
 

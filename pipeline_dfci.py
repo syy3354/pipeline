@@ -3323,9 +3323,9 @@ def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[
 
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%Hh%Mm%Ss')
-    cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/cufflinks_%s_%s' % (name,timestamp) + '_%j.out # Standard output and error log'
+    cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/cufflinks_%s_%s' % (analysisName,timestamp) + '_%j.out # Standard output and error log'
     bashFile.write(cmd+'\n')
-    cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/cufflinks_%s_%s' % (name,timestamp) + '_%j.err # Standard output and error log'
+    cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/cufflinks_%s_%s' % (analysisName,timestamp) + '_%j.err # Standard output and error log'
     bashFile.write(cmd+'\n')
 
     cmd = 'pwd; hostname; date'

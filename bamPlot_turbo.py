@@ -348,7 +348,7 @@ def callRPlot(summaryFile, outFile, yScale, plotStyle,multi):
     else:
         pageFlag = 'SINGLE_PAGE'
 
-    cmd = 'Rscript %sbamPlot_turbo.R %s %s %s %s' % (pipeline_dir,summaryFile, outFile, yScale, plotStyle, pageFlag)
+    cmd = 'Rscript %sbamPlot_turbo.R %s %s %s %s %s' % (pipeline_dir,summaryFile, outFile, yScale, plotStyle, pageFlag)
     print('calling command %s' % (cmd))
     return cmd
 
