@@ -100,6 +100,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 
 #FORMATTING FUNCTIONS
 #makePipelineTable(sampleTableFile,dirPath,bamPath,outputFile,overwrite=False):
+#makeGenialisTable(dataFile,outFilePath,organism='',seqType='',paired=False,collection='',annotator='',source='',strain='',tissue='',age='',genotype='',molecule='',libraryStrategy='',exPro='',libraryConst='',other1='',other2='')
 
 #LOADING THE MASTER DATA TABLE
 #def loadDataTable(dataFile):
@@ -430,6 +431,77 @@ def makePipelineTable(sampleTableFile,dirPath,bamPath,outputFile,overwrite=False
 
     unParseTable(pipelineTable,outputFile,'\t')
 
+def makeGenialisTable(dataFile,outFilePath,organism='',seqType='',paired=False,collection='',annotator='',source='',strain='',tissue='',age='',genotype='',molecule='',libraryStrategy='',exPro='',libraryConst='',other1='',other2=''):
+    #Most of these inputs are left as blanks, because they are dependent on how the data was prepared.
+    #   dataFile is the pipeline formated table used for the Lin Lab pipeline
+    #   outFilePath designates where you would like the annotation table to be written to
+    #   organism type is based on the genome used, but must be written with the proper format
+    #   seqType is the type of sequencing (e.g. RNAseq, CHiPseq, etc)
+    #   paired is default False, if you have paired end data, set this to True
+    #   collection is the name of your project, it is helpful to you to make it meaningful
+    #   annotator is the person preparing the annotation    
+    #   source, strain, tissue, age, and genotype are self-explanitory
+    #   molecule can be one of the following:
+    #                  total RNA
+    #                  polyA RNA
+    #                  cytoplasmic RNA
+    #                  nuclear RNA
+    #                  genomic DNA
+    #                  protein
+    #                  other
+    #  libraryStrategy can be used to denote strand i.e. single end ChIP-Seq
+    #  exPro is the extraction protocol used i.e. young lab chip protocol
+    #  libraryConst is the library construction protocol used i.e. rubicon thruplex
+    #  other1 and other2 can be used to denote any other information that is not in the table
+    
+
+    #This is the header for genialis annotation tables
+    genialis_header = ['NAME','FASTQ_R1','FASTQ_R2','SEQ_TYPE','PAIRED','COLLECTION','ANNOTATOR','SOURCE','ORGANISM','STRAIN','TISSUE','AGE','GENOTYPE','MOLECULE',
+                       'LIBRARY_STRATEGY','EXTRACTION_PROTOCOL','LIBRARY_CONSTRUCTION_PROTOCOL','OTHER_CHAR_1','OTHER_CHAR_2']
+    
+    #This selects the proper organism based on the genome you are using
+    genomeDict = {'HG38':'Homo sapiens',
+                  'HG19':'Homo sapiens',
+                  'HG19_ERCC':'Homo sapiens',
+                  'MM9':'Mus musculus',
+                  'MM10':'Mus musculus',
+                  'RN6':'Rattus norvegicus',
+                  'RN6_ERCC':'Rattus norvegicus',
+                           }
+
+    #make list to populate and write to table
+    genialisTable=[]
+    
+    #add the header to the list
+    genialisTable.append(genialis_header)
+    
+    #parse the data table
+    dataTable = utils.parseTable(dataFile,'\t')
+
+
+    #Iterates through the table to select core information for annotation table
+    for line in dataTable[1:]:
+        name = line[3]
+        if paired==False:
+            fastq1 = line[8]
+            fastq2 = ''
+            pair=0
+        elif paired==True:
+            foo = line[8].split('::')
+            print(foo)
+            fastq1 = foo[0]
+            fastq2 = foo[1]
+            pair=1
+        if organism=='':
+            organism=genomeDict[line[2].upper()]
+
+        new_line = [name,fastq1,fastq2,seqType,pair,collection,annotator,source,organism,strain,tissue,age,
+                    genotype,molecule,libraryStrategy,exPro,libraryConst,other1,other2]
+
+        genialisTable.append(new_line)
+
+    #Writes table to output
+    utils.unParseTable(genialisTable,outFilePath,'\t')
 
 
 
@@ -775,7 +847,7 @@ def makeBowtieBashJobs(dataFile,namesList = [],launch=True,overwrite=False,param
                 cmd = "bash %s%s_bwt2.sh &" % (outputFolder,uniqueID)
                 os.system(cmd)
 
-def makeBowtieBashSlurmJobs(dataFile,namesList = [],launch=True,overwrite=False,pCount=1):
+def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,pCount=1):
 
     '''
     makes a mapping bash script and launches
