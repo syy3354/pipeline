@@ -81,7 +81,7 @@ bamliquidator_path = 'bamliquidator_batch.py'
 
 
 
-paramDict = {'cpgPath': '/grail/projects/mycn_cyl/beds/cpg_islands.bed',
+paramDict = {'cpgPath': '/storage/cylin/grail/projects/mycn_resub/mycn/beds/hg19_cpg_islands.bed',
 
              
              }
@@ -114,8 +114,9 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         }
 
     genomeDirectoryDict = {
-        'HG19':'/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
-        'RN6':'/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
+        'HG19':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
+        'RN6':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
+        'MM9':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Chromosomes/',
         }
         
     genomeDirectory = genomeDirectoryDict[string.upper(genome)]
@@ -625,8 +626,8 @@ def callGSEA(outputFolder,analysisName,top):
     '''
     runs C2 GSEA
     '''
-    gseaPath = '/usr/local/bin/gsea/gsea2-2.2.2.jar'
-    gmxPath = '/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
+    gseaPath = '/storage/cylin/home/cl6/gsea2-3.0_beta_2.jar'
+    gmxPath = '/storage/cylin/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
 
 
     gseaBashFilePath = '%s%s_GSEA_cmd.sh' % (outputFolder,analysisName)

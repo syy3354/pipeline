@@ -2204,7 +2204,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                 cmd1 = "python %s/bamToGFF_turbo.py -e %s -m %s -b %s -i %s -o %s" % (whereAmI,extension,nBin,fullBamFile,gffFile,outFile)
                 if rpm:
                     cmd1 += ' -r'
-                cmd1 += ' &'
+                #cmd1 += ' &'
                 print cmd1
                 os.system(cmd1)
 
@@ -2216,7 +2216,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                     cmd1 = "python %s/bamToGFF_turbo.py -e %s -m %s -b %s -i %s -o %s" % (whereAmI,extension,nBin,fullBamFile,gffFile,outFile)
                     if rpm:
                         cmd1 += ' -r'
-                    cmd1 += ' &'
+                    #cmd1 += ' &'
 
                     print cmd1
                     os.system(cmd1)

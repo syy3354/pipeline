@@ -43,7 +43,7 @@ import zlib
 from distutils.spawn import find_executable
 
 # Try to use the bamliquidatior script on cluster, otherwise, failover to local default, otherwise fail.
-bamliquidatorString = '/ark/home/cl512/pipeline/bamliquidator'
+bamliquidatorString = '/opt/bamliquidator/pipeline/bamliquidator_internal/bamliquidator'
 if not os.path.isfile(bamliquidatorString):
     bamliquidatorString = find_executable('bamliquidator')
     if bamliquidatorString is None:
