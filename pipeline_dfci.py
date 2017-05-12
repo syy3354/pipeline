@@ -476,7 +476,7 @@ def makeGenialisTable(dataFile,outFilePath,organism='',seqType='',paired=False,c
     genialisTable.append(genialis_header)
     
     #parse the data table
-    dataTable = utils.parseTable(dataFile,'\t')
+    dataTable = parseTable(dataFile,'\t')
 
 
     #Iterates through the table to select core information for annotation table
@@ -501,8 +501,8 @@ def makeGenialisTable(dataFile,outFilePath,organism='',seqType='',paired=False,c
         genialisTable.append(new_line)
 
     #Writes table to output
-    utils.unParseTable(genialisTable,outFilePath,'\t')
-
+    unParseTable(genialisTable,outFilePath,'\t')
+    return outFilePath
 
 
 #==========================================================================
