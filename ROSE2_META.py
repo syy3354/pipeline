@@ -719,7 +719,7 @@ def main():
 
     rankbyName = inputName + '_MERGED_SIGNAL'
     controlName = 'NONE'
-    cmd = 'Rscript %sROSE2_callSuper.R %s %s %s %s' % (pipeline_dir,outFolder, metaOutputFile, inputName, controlName,pipeline_dir)
+    cmd = 'Rscript %sROSE2_callSuper.R %s %s %s %s' % (pipeline_dir,outFolder, metaOutputFile, inputName, controlName)
     print(cmd)
 
     os.system(cmd)
