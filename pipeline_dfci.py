@@ -934,6 +934,122 @@ def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,
                 #change it to sbatch and off you go
 
 
+#================================================================
+#===================SPLITTING CHIPRX BAMS========================
+#================================================================
+
+def splitChipRXBams(dataFile,genome1='',genome2='',namesList=[],header1='',header2=''):
+    #genome1 is primary genome
+    #genome2 is secondary genome
+    #header 1 is the path to the header for genome1 sam files
+    #header 2 is the path to the header for genome2 same files
+
+
+
+    dataDict = loadDataTable(dataFile)
+
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+    namesList.sort()
+
+    for name in namesList: 
+        bam_dir = dataDict[name]['folder']
+        uniqueID=dataDict[name]['uniqueID']
+
+
+        #open the bashfile to write to
+        bashFileName = "%s%s_splitBamSlurm.sh" % (bam_dir,uniqueID)
+        bashFile = open(bashFileName,'w')
+
+        #shebang
+        bashFile.write('#!/usr/bin/bash\n')
+
+        #sbatch funky junk
+        cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/splitChipRXBams_%s' % (uniqueID) + '_%j.out # Standard output and error log'
+        bashFile.write(cmd+'\n')
+        cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/splitChipRXBams_%s' % (uniqueID) + '_%j.err # Standard output and error log'
+        bashFile.write(cmd+'\n')
+        bashFile.write('\n\n\n')
+
+        cmd = 'samtools view -h -o %s%s.sam %s%s.%s.bwt2.sorted.bam' % (bam_dir,uniqueID,bam_dir,uniqueID,genome1)
+        bashFile.write(cmd+'\n')
+
+        outSam = '%s%s.sam' % (bam_dir,uniqueID)
+        split_cmd_1 = 'samtools view -S -F 4 %s | awk -vOFS="\t" '% (outSam)
+        split_cmd_2 = '{sindex=index($3,"_%s"); if(sindex >0) {$3=substr($3,1,sindex-1);  print $0 > "%s%s.%s.sam";} else { print $0 > "%s%s.%s.sam";}}' % (genome2,bam_dir,uniqueID,genome2,bam_dir,uniqueID,genome1)
+        cmd= split_cmd_1 + ' ' +'\'%s\'' % (split_cmd_2)
+        bashFile.write(cmd+'\n')
+
+        genome1_sam = '%s%s.%s.sam' % (bam_dir,uniqueID,genome1)
+        genome2_sam = '%s%s.%s.sam' % (bam_dir,uniqueID,genome2)
+        outbam1 = '%s%s.%s.bam' % (bam_dir,uniqueID,genome1)
+        outbam2 = '%s%s.%s.bam' % (bam_dir,uniqueID,genome2)
+        cmd1 = 'cat %s %s | samtools view -bS - > %s' % (header1,genome1_sam, outbam1)
+        cmd2 = 'cat %s %s | samtools view -bS - > %s' % (header2,genome2_sam, outbam2)
+        bashFile.write(cmd1 + '\n' + cmd2 + '\n\n')
+
+        cmd = 'samtools sort \'%s\' \'%s%s.%s.sorted\''  % (outbam1,bam_dir,uniqueID,genome1)
+        bashFile.write(cmd + '\n')
+        cmd = 'samtools sort \'%s\' \'%s%s.%s.sorted\''  % (outbam2,bam_dir,uniqueID,genome2)
+        bashFile.write(cmd + '\n')
+        cmd = 'samtools index %s%s.%s.sorted.bam' % (bam_dir,uniqueID,genome1)
+        bashFile.write(cmd + '\n')
+        cmd = 'samtools index %s%s.%s.sorted.bam' % (bam_dir,uniqueID,genome2)
+        bashFile.write(cmd + '\n')
+
+        bashFile.close()
+
+
+#===========================================================================
+#=========================ChIP RX SCALE FACTORS=============================
+#===========================================================================
+
+
+
+
+def writeScaleFactors(dataFile,namesList=[],output='',genome1='',genome2=''):
+
+    '''
+    creates a table of scale factors based on the rx genome read depth
+    '''
+
+    #first set up the output folder
+    #rpm scale factor is what the rpm/bp should be MULTIPLIED by
+    #mouse mapped reads give the denominator for what raw r/bp should be divided by
+    outputTable = [['NAME','%s_MAPPED_READS','%s_MAPPED_READS','RPM_SCALE_FACTOR']] % (genome1,genome2)
+
+
+    dataDict=pipeline_dfci.loadDataTable(dataFile)
+    if len(namesList) == 0:
+        namesList = [name for name in dataDict.keys()]
+    namesList.sort()
+    print('scaling the following datasets')
+
+
+    for name in namesList:
+
+        print('WORKING ON %s' % (name))
+        bam_path = dataDict[name]['bam']
+        bam = utils.Bam(bam_path)
+        bam_mmr = float(bam.getTotalReads())/1000000
+        scale_path = string.replace(bam_path,genome1,genome2)
+        scaleBam = utils.Bam(scale_path)
+        scale_mmr = float(scaleBam.getTotalReads())/1000000
+        #print(bam_path)
+        #print(scale_path)
+        rpm_scale = bam_mmr/scale_mmr
+        scale_line = [bam_mmr,scale_mmr,rpm_scale]
+        scale_line = [round(x,4) for x in scale_line]
+        outputTable.append([name] + scale_line)
+
+    if len(output) == 0:
+        return outputTable
+    else:
+        utils.unParseTable(outputTable,output,'\t')
+
+
+
+
 
 
 
@@ -2143,9 +2259,9 @@ def mapEnrichedToGFF(dataFile,setName,gffList,cellTypeList,enrichedFolder,mapped
                 else:
                     mappedGFF[i+1].append(0)
 
-
-        unParseTable(mappedGFF,outdir+gffName+'_'+setName+'.txt','\t')
-
+        out_path = outdir+gffName+'_'+setName+'.txt'
+        unParseTable(mappedGFF,out_path,'\t')
+        return out_path
 
 
 
@@ -3421,7 +3537,7 @@ def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[
     for name in namesList:
         bashFile.write('mkdir %s\n' % (name))
 
-    bashFile.write("\necho 'calling cuffquant'\n")
+        bashFile.write("\necho 'calling cuffquant'\n")
 
     cuffquantList = [] # create a list to store cuffquant .cxb outputs so we can check for completeness
     for name in namesList:

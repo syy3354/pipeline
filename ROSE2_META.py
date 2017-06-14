@@ -731,21 +731,21 @@ def main():
     superTableFile = "%s_SuperEnhancers.table.txt" % (inputName)
 
     #for now don't use ranking bam to call top genes
-    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s" % (pipeline_dir,genome, outFolder, superTableFile)
+    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s -f" % (pipeline_dir,genome, outFolder, superTableFile)
     print(cmd)
     os.system(cmd)
 
 
     stretchTableFile = "%s_StretchEnhancers.table.txt" % (inputName)
  
-    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s" % (pipeline_dir,genome, outFolder, stretchTableFile)
+    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s -f" % (pipeline_dir,genome, outFolder, stretchTableFile)
     print(cmd)
     os.system(cmd)
 
 
     superStretchTableFile = "%s_SuperStretchEnhancers.table.txt" % (inputName)
 
-    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s" % (pipeline_dir,genome, outFolder, superStretchTableFile)
+    cmd = "python %sROSE2_geneMapper.py -g %s -i %s%s -f" % (pipeline_dir,genome, outFolder, superStretchTableFile)
     os.system(cmd)
 
 

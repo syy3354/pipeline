@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ######################
 #
 # Core Regulatory Circuits
@@ -18,9 +20,12 @@ import sys
 import string
 
 whereAmI = os.path.dirname(os.path.realpath(__file__))
-pipeline_dir = '%s/' % (string.replace(whereAmI,'crc/','')) # need to set this to where this code is stored
-sys.path.append(pipeline_dir)
+print(whereAmI)
+pipeline_dir = '%s' % (string.replace(whereAmI,'crc','')) # need to set this to where this code is stored
 
+
+sys.path.append(pipeline_dir)
+print(pipeline_dir)
 import utils
 
 
@@ -107,12 +112,11 @@ def loadGenome(genome_build):
     genome_build = string.upper(genome_build)
     genomeDict = {
         'HG19':{'annot_file':'%sannotation/hg19_refseq.ucsc' % (pipeline_dir),
-                'genome_directory':'/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
-                'tf_file':'%sannotation/TFlist_NMid_hg19.txt' % (whereAmI),     
-                'mask_file':'/%sgenomes/Homo_sapiens/UCSC/hg19/Annotation/Masks/hg19_encode_blacklist.bed',
-                'motif_convert':'%sannotation/MotifDictionary.txt' % (whereAmI),
-                #'motif_convert':'/grail/projects/medullo_final/bordo/MotifDictionary_NRL.txt',
-                'motif_database':'%sannotation/VertebratePWMs.txt' % (whereAmI),
+                'genome_directory':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
+                'tf_file':'%s/annotation/TFlist_NMid_hg19.txt' % (whereAmI),     
+                'mask_file':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Annotation/Masks/hg19_encode_blacklist.bed',
+                'motif_convert':'%s/annotation/MotifDictionary.txt' % (whereAmI),
+                'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
                 },
         'RN6':{'annot_file':'%sannotation/rn6_refseq.ucsc' % (pipeline_dir),
                 'genome_directory':'%sgenomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/' % (pipeline_dir),
@@ -199,7 +203,6 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
     closest_index = header.index('CLOSEST_GENE')
     proximal_index = header.index('PROXIMAL_GENES')
     overlap_index = header.index('OVERLAP_GENES')
-
     for line in enhancer_table[1:]:
         if len(line) != header_length: #don't bother trying to figure out lines w/o target genes
             continue
@@ -229,8 +232,9 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
         if len(candidate_gene_list) > 0:
             tfLine = line[0:4] + [','.join(candidate_gene_list)]
             enhancerTFTable.append(tfLine)
+    
 
-    #now iterate through each gee and list the enhancers
+    #now iterate through each gene and list the enhancers
     gene_list = gene_to_enhancer_dict.keys()
     gene_list.sort()
     for gene in gene_list:
@@ -457,6 +461,7 @@ def generateSubpeakFASTA(gene_to_enhancer_dict, subpeaks, genome, projectName, p
     subpeakLoci = [utils.Locus(l[0], int(l[1]), int(l[2]), '.') for l in subpeakTable]
     subpeakCollection = utils.LocusCollection(subpeakLoci, 50)
 
+
     for gene in gene_to_enhancer_dict.keys():
         subpeakDict[gene] = []
         for region in gene_to_enhancer_dict[gene]:
@@ -468,6 +473,7 @@ def generateSubpeakFASTA(gene_to_enhancer_dict, subpeaks, genome, projectName, p
             for overlap in overlapCollection.getLoci():
                 subpeakBED.append([overlap.chr(), overlap.start(), overlap.end()])
                 subpeakDict[gene].append(overlap)
+
 
     fasta = []
 
@@ -583,17 +589,17 @@ def collapseFimo(fimo_output,gene_to_enhancer_dict,candidate_tf_list,output_fold
         
 
     fimoTable = utils.parseTable(fimo_output,'\t')
-
+    print(fimo_output)
     for line in fimoTable[1:]:
         source_tfs = motifDatabaseDict[line[0]]   #motifId
         for source in source_tfs:
             if candidate_tf_list.count(source) == 0:
                 continue
-            region = line[1].split('|')
+            region = line[2].split('|')
 
             target = region[0]
-            target_locus = utils.Locus(region[1],int(region[2]) + int(line[2]), int(region[2]) + int(line[3]),'.')
-        
+
+            target_locus = utils.Locus(region[1],int(region[2]) + int(line[3]), int(region[2]) + int(line[4]),'.')
             #what's missing here is the enhancer id of the target locus
             try:
                 edgeDict[source][target].append(target_locus)
@@ -1015,8 +1021,8 @@ def main():
 
 
     #first make the subpeak bed and subpeak fasta for the tfs
-    all_sub_bed,all_fasta = generateSubpeakFASTA(gene_to_enhancer_dict, all_bed_path, genome, analysis_name,output_folder, constExtension)
 
+    all_sub_bed,all_fasta = generateSubpeakFASTA(gene_to_enhancer_dict, all_bed_path, genome, analysis_name,output_folder, constExtension)
     if subpeakFile == None:
         #this is the case where we did valleys #only reason you would need to output the sub bed
         all_sub_out = '%s%s_all_subpeak.bed' % (output_folder,analysis_name)
@@ -1042,7 +1048,6 @@ def main():
     fimo_out = findMotifs(all_fasta_out,bg_path,candidate_tf_list, output_folder, analysis_name, motifConvertFile, motifDatabaseFile)
 
     edgeDict = collapseFimo(fimo_out,gene_to_enhancer_dict,candidate_tf_list,output_folder,analysis_name,motifConvertFile)
-
 
     #=====================================================================================
     #============================V. RUNNING NETWORK ANALYSIS==============================

@@ -95,7 +95,9 @@ def makeNameDict(dataFile,roseFolder,namesList=[],enhancerType='super'):
     dataDict = pipeline_dfci.loadDataTable(dataFile)
     
     #draw the parent folder from the dataFile
-    parentFolder = utils.getParentFolder(dataFile)
+    parentFolder = utils.formatFolder(utils.getParentFolder(dataFile),False)
+    if parentFolder.count('data_tables') == 1:
+        parentFolder = parentFolder.replace('data_tables/','')
     print "Using %s as the parent folder" % (parentFolder)
 
     #check to see if a rose folder exists already
@@ -200,7 +202,7 @@ def launchEnhancerMapping(dataFile,nameDict,outputFolder,roseFolder,stitch,tssDi
             print "CALLING ROSE FOR %s" % (name)
             bashFileName = pipeline_dfci.callRose2(dataFile,'',roseOutputFolder,[name],[],enrichedFile,tssDistance,stitch,mask=maskFile)
             print bashFileName
-            os.system('bash %s &' % (bashFileName))
+            os.system('bash %s' % (bashFileName))
             #add name to queue list
             queueList.append(name)
 

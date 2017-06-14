@@ -109,23 +109,31 @@ def mapEnhancerToGene(annotFile,enhancerFile,transcribedFile='',uniqueGenes=True
     #list of all genes that appear in this analysis
     overallGeneList = []
 
+
+    # find the header
+    for line in enhancerTable:
+        if line[0][0] != '#':
+            header = line
+            print('this is the header')
+            print(header)
+            break
+
     if noFormatTable:
-        #set up the output tables
-        #first by enhancer
-        enhancerToGeneTable = [enhancerTable[0]+['OVERLAP_GENES','PROXIMAL_GENES','CLOSEST_GENE']]
+        # set up the output tables
+        # first by enhancer
+        enhancerToGeneTable = [
+            header + ['OVERLAP_GENES', 'PROXIMAL_GENES', 'CLOSEST_GENE']]
 
-        
     else:
-        #set up the output tables
-        #first by enhancer
-        enhancerToGeneTable = [enhancerTable[0][0:9]+['OVERLAP_GENES','PROXIMAL_GENES','CLOSEST_GENE'] + enhancerTable[5][-2:]]
+        # set up the output tables
+        # first by enhancer
+        enhancerToGeneTable = [
+            header[0:9] + ['OVERLAP_GENES', 'PROXIMAL_GENES', 'CLOSEST_GENE'] + header[-2:]]
 
-        #next by gene
-        geneToEnhancerTable = [['GENE_NAME','REFSEQ_ID','PROXIMAL_ENHANCERS']]
 
-    #next make the gene to enhancer table
-    geneToEnhancerTable = [['GENE_NAME','REFSEQ_ID','PROXIMAL_ENHANCERS','ENHANCER_RANKS','IS_SUPER']]
-
+    # next make the gene to enhancer table
+    geneToEnhancerTable = [
+        ['GENE_NAME', 'REFSEQ_ID', 'PROXIMAL_ENHANCERS', 'ENHANCER_RANKS', 'IS_SUPER', 'ENHANCER_SIGNAL']]
         
 
 
@@ -330,12 +338,12 @@ def mapEnhancerToGeneTop(rankByBamFile, controlBamFile, genome, annotFile, enhan
     # list of all genes that appear in this analysis
     overallGeneList = []
 
-    # find the damn header
+    # find the header
     for line in enhancerTable:
-        if line[0][0] == '#':
-            continue
-        else:
+        if line[0][0] != '#':
             header = line
+            print('this is the header')
+            print(header)
             break
 
     if noFormatTable:
@@ -350,9 +358,6 @@ def mapEnhancerToGeneTop(rankByBamFile, controlBamFile, genome, annotFile, enhan
         enhancerToGeneTable = [
             header[0:9] + ['OVERLAP_GENES', 'PROXIMAL_GENES', 'CLOSEST_GENE'] + header[-2:]]
 
-        # next by gene
-        geneToEnhancerTable = [
-            ['GENE_NAME', 'REFSEQ_ID', 'PROXIMAL_ENHANCERS']]
 
     # next make the gene to enhancer table
     geneToEnhancerTable = [
