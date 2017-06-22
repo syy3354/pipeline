@@ -276,7 +276,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #                                                                         #
 #-------------------------------------------------------------------------#
 
-#def makeTrackHub(dataFileList=[],analysis_name,wiggle_dir='',chrom_sizes,web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0')
+#def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False)
 
 
 #============================================================================================================
@@ -1016,10 +1016,12 @@ def writeScaleFactors(dataFile,namesList=[],output='',genome1='',genome2=''):
     #first set up the output folder
     #rpm scale factor is what the rpm/bp should be MULTIPLIED by
     #mouse mapped reads give the denominator for what raw r/bp should be divided by
-    outputTable = [['NAME','%s_MAPPED_READS','%s_MAPPED_READS','RPM_SCALE_FACTOR']] % (genome1,genome2)
+    genome1_map_string = '%s_MAPPED_READS' % (genome1)
+    genome2_map_string = '%s_MAPPED_READS' % (genome2)   
+    outputTable = [['NAME',genome1_map_string,genome2_map_string,'RPM_SCALE_FACTOR']]
 
 
-    dataDict=pipeline_dfci.loadDataTable(dataFile)
+    dataDict=loadDataTable(dataFile)
     if len(namesList) == 0:
         namesList = [name for name in dataDict.keys()]
     namesList.sort()
@@ -1035,8 +1037,10 @@ def writeScaleFactors(dataFile,namesList=[],output='',genome1='',genome2=''):
         scale_path = string.replace(bam_path,genome1,genome2)
         scaleBam = utils.Bam(scale_path)
         scale_mmr = float(scaleBam.getTotalReads())/1000000
-        #print(bam_path)
-        #print(scale_path)
+        print(bam_path)
+        print(bam_mmr)
+        print(scale_path)
+        print(scale_mmr)
         rpm_scale = bam_mmr/scale_mmr
         scale_line = [bam_mmr,scale_mmr,rpm_scale]
         scale_line = [round(x,4) for x in scale_line]
@@ -2620,7 +2624,9 @@ def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianN
     '''
     making a normalized binding signal table at all regions
     '''
-
+    
+    #set up a list to return all signal tables made
+    signal_table_list = []
     #since each bam has different read lengths, important to carefully normalize quantification
     dataDict = loadDataTable(dataFile)
     dataFile_name = dataFile.split('/')[-1].split('.')[0]
@@ -2646,8 +2652,9 @@ def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianN
             signal_table_path = output
         print(signal_table_path)
         makeSignalTable(dataFile,gffFile,mappedFolder,names_list,medianNorm,output =signal_table_path)
+        signal_table_list.append(signal_table_path)
 
-    return signal_table_path
+    return signal_table_list
 
 #==========================================================================
 #===================MAKING GFF LISTS=======================================
@@ -5079,7 +5086,7 @@ def processGecko(dataFile,geckoFolder,namesList = [],overwrite=False,scoringMeth
 #===================MAKE UCSC TRACKHUB FILES===============================
 #==========================================================================
 
-def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0'):
+def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False):
     #dataFileList will take several data tables and use them to create a track hub. This will not include background samples, because they do not have wiggle files
     #analysis_name is the name of your project
     #wiggle_dir is the path to where the wiggle files for this analysis live; will default to '/storage/cylin/grail/projects/analysis_name/wiggles' if left blank
@@ -5185,10 +5192,15 @@ def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_d
     trackDbFileName = genomeFolderName + '/trackDb.txt'
 
     trackDbFile = open(trackDbFileName,'w')
+    
+    if scaled == True:
+        wig_str = '_scaled.wig.gz'
+    else:
+        wig_str = '_treat_afterfiting_all.wig.gz'
 
     for line in allData:
         name = line[3]
-        input_wig = wiggle_dir+ name + '_treat_afterfiting_all.wig.gz'
+        input_wig = wiggle_dir+ name + wig_str
         bigwig_name = name + '.bw'
         bigwig_out = '{}/{}'.format(
             genomeFolderName,
