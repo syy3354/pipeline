@@ -1146,6 +1146,7 @@ class Bam:
 
         #get the number of reads use idxstats instead of flagstat
         command = '%s idxstats %s' % (samtoolsString,self._bam)
+
         stats = subprocess.Popen(command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
         statLines = stats.stdout.readlines()
         stats.stdout.close()
@@ -1154,10 +1155,17 @@ class Bam:
         self._total_reads = self._mapped_reads + int(statLines[-1].rstrip().split('\t')[-1])
 
         #now get the readlength #check the first 1000 reads
-        view_command = '%s view %s chr1:10000000-20000000' % (samtoolsString,self._bam)
+        view_command = '%s view %s chr1:90000000-100000000' % (samtoolsString,self._bam)
         read_stats = subprocess.Popen(view_command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
         read_statLines = read_stats.stdout.readlines()
         read_stats.stdout.close()
+
+        if len(read_statLines) == 0: # try chrom names w/o the chr
+            view_command = '%s view %s 1:90000000-100000000' % (samtoolsString,self._bam)
+            read_stats = subprocess.Popen(view_command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
+            read_statLines = read_stats.stdout.readlines()
+            read_stats.stdout.close()
+
         self._read_lengths = uniquify([len(line.split('\t')[9]) for line in read_statLines if len(line) >0])
 
     def getTotalReads(self,readType = 'mapped'):

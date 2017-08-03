@@ -268,7 +268,7 @@ def mapBams(bamFileList,splitGFFPath,analysisName,mappedFolder):
             
             mappedTable = utils.parseTable( '%s%s_%s_MAPPED/matrix.txt' % (mappedFolder, analysisName, bamFileName),'\t')
             
-            for i in range(1,len(mappedTable[i])):
+            for i in range(1,len(mappedTable)):
                 mapSignal = mappedTable[i][2]
                 signalTable[i].append(mapSignal)
     else:

@@ -259,6 +259,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #-------------------------------------------------------------------------#
 
 #MAKING EXPRESSION TABLES
+#def mapHisat(dataFile,namesList=[],useSRA=True,pCount=16,Launch=True):
 #def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
 #def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
 
@@ -3339,6 +3340,118 @@ def callRose2Slurm(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMa
 #                          EXPRESSION TOOLS                               #
 #                                                                         #
 #-------------------------------------------------------------------------#
+
+def mapHisat(dataFile,namesList=[],projectFolder='',useSRA=True,pCount=16,Launch=True):
+    
+   # '''
+   # maps using hisat2 if useSRA is flagged will try to extract an SRA ID from the fastq path and call directly
+   # '''
+   #load the datasets
+    dataDict = loadDataTable(dataFile)
+
+    #loading the datasets we want to process
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+
+    #want to write to the bam folder which we can deduce from the genomes of the datasets
+    #we want to make sure everyone has the same genome or else this is scary
+
+    genomeList = [dataDict[name]['genome'] for name in dataDict.keys()]
+
+    if len(utils.uniquify(genomeList)) > 1:
+        print('OH HECK NO YOU CANT ALIGN MULTIPLE GENOMES THAT WOULD BE STUPID')
+        sys.exit()
+
+    genome = string.upper(genomeList[0])
+
+    bamFolder = utils.formatFolder(dataDict[namesList[0]]['folder'])
+    hisatIndexDictionary = {'HG38':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg38/Sequence/Hisat2Index/hg38',
+                           'MM9': '/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Hisat2Index/mm9',
+                           'RN6_ERCC': '/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Hisat2Index_ERCC/rn6_ercc',
+                           'RN6': '/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Hisat2Index/rn6',
+                           'HG19_ERCC': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Hisat2Index_ERCC/hg19_ercc'
+                          }
+
+    hisatIndex = hisatIndexDictionary[genome]
+
+
+  #now we can loop through the datasets
+    for name in namesList:
+        bashFilePath = '%s%s_HISAT2' % (projectFolder,name)
+        bashFile = open(bashFilePath,'w')
+        bashFile.write('#!/usr/bin/bash\n') #shebang line plus end of line characters
+        bashFile.write('\n\n\n')
+       
+        #first write a line to cd into the bam folder
+        bashFile.write('cd %s\n' %(bamFolder))
+        
+        uniqueID = dataDict[name]['uniqueID']
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%Hh%Mm%Ss')
+        cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/hisat2_%s_%s' % (name,timestamp) + '_%j.out # Standard output and error log'
+        bashFile.write(cmd+'\n')
+        cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/hisat2_%s_%s' % (name,timestamp) + '_%j.err # Standard output and error log'
+        bashFile.write(cmd+'\n')
+
+        cmd = 'pwd; hostname; date'
+        bashFile.write(cmd+'\n')
+        bashFile.write('\n\n\n')
+
+        bashFile.write('#===================\n')
+        bashFile.write('#PROCESSING %s\n' %(name))
+        bashFile.write('echo "processing %s"\n' % (name))
+
+        outputSam = '%s%s.%s.sam' % (bamFolder,uniqueID,genome)
+        outputBam = '%s%s.%s.bam' % (bamFolder,uniqueID,genome)
+        outputSortedBam = '%s%s.%s.sorted' % (bamFolder,uniqueID,genome)
+
+        if useSRA:
+            srrID = dataDict[name]['fastq'].split('/')[-2]
+            alignCmd = 'hisat2 -p %s --no-unal -x %s --sra-acc %s -S %s' % (pCount,hisatIndex,srrID,outputSam)
+        else:
+            #check for paired end
+            fastqPath = dataDict[name]['fastq']
+            if fastqPath.count('::') == 1:
+                #this is paried end
+                [fastqPath_1,fastqPath_2] = fastqPath.split('::')
+                alignCmd = 'hisat2 -p %s --no-unal -x %s -1 %s -2 %s -S %s' % (pCount,hisatIndex,fastqPath_1,fastqPath_2,outputSam)
+            else:
+                alignCmd = 'hisat2 -p %s --no-unal -x %s -U %s -S %s' % (pCount,hisatIndex,fastqPath,outputSam)
+
+        bashFile.write(alignCmd)
+        bashFile.write('\n')
+
+      # now convert the sam to a bam
+        generateBamCmd = '/usr/bin/samtools view -bS %s > %s' % (outputSam,outputBam)
+        bashFile.write(generateBamCmd)
+        bashFile.write('\n')
+
+      # now we need to sort the bam
+        sortBamCmd = '/usr/bin/samtools sort %s %s' % (outputBam,outputSortedBam)
+        bashFile.write(sortBamCmd)
+        bashFile.write('\n')
+
+      # now we need to index the bam
+        indexBamCmd = '/usr/bin/samtools index %s.bam' % (outputSortedBam)
+        bashFile.write(indexBamCmd)
+        bashFile.write('\n')
+
+      #now we need to delete the sam
+        deleteSamCmd = 'rm %s' % (outputSam)
+        bashFile.write(deleteSamCmd)
+        bashFile.write('\n')
+
+        #now we need to delete the unsorted bam
+        deleteBamCmd = 'rm %s' % (outputBam)
+        bashFile.write(deleteBamCmd)
+        bashFile.write('\n')
+        bashFile.write('\n\n\n')
+        bashFile.close()
+        if Launch:
+            time.sleep(1)
+            cmd = "sbatch -n %s --mem 32768 %s &" % (pCount,bashFilePath)
+            os.system(cmd)
+
 
 
 

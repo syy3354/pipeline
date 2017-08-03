@@ -396,7 +396,6 @@ def main():
         parser.print_help()
         exit()
 
-
     #retrive the arguments
     fastqFile = options.fastq
     genome = string.lower(options.genome)

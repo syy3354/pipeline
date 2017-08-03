@@ -133,7 +133,6 @@ runWaterfall <- function(geneTable,analysisName,outputFolder,top=0,geneList = c(
 	}else{
 		topString = as.character(top)
 	}
-
 	#get the signal for tss, distal and total
 	promoterSignal =geneTable[,2]
 	enhancerSignal = geneTable[,3]
@@ -309,11 +308,10 @@ geneTable = read.delim(geneTablePath,sep='\t')
 #========================================================
 
 #for all
-plotContribution(geneTable,analysisName,outputFolder)
-runWaterfall(geneTable,analysisName,outputFolder)
+#plotContribution(geneTable,analysisName,outputFolder)
+#runWaterfall(geneTable,analysisName,outputFolder)
 
 
 #top N
 plotContribution(geneTable,analysisName,outputFolder,as.numeric(top)) 
 runWaterfall(geneTable,analysisName,outputFolder,as.numeric(top))
-

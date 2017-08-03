@@ -119,10 +119,10 @@ def loadGenome(genome_build):
                 'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
                 },
         'RN6':{'annot_file':'%sannotation/rn6_refseq.ucsc' % (pipeline_dir),
-                'genome_directory':'%sgenomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/' % (pipeline_dir),
-                'tf_file':'%sannotation/TFlist_NMid_rn6.txt' % (whereAmI),      
-                'motif_convert':'%sannotation/MotifDictionary.txt' % (whereAmI),
-                'motif_database':'%sannotation/VertebratePWMs.txt' % (whereAmI),
+                'genome_directory':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
+                'tf_file':'%s/annotation/TFlist_NMid_rn6.txt' % (whereAmI),      
+                'motif_convert':'%s/annotation/MotifDictionary.txt' % (whereAmI),
+                'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
                 }
 
         }
@@ -171,7 +171,18 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
     #intersect w/ the activity table
     if len(activity_path) > 0:
         activity_table = utils.parseTable(activity_path,'\t')
-        active_gene_list = [string.upper(line[0]) for line in activity_table]
+        #figure out the right column for actual gene names (basically not NM or NR and not a numeral)
+        for i in range(len(activity_table[0])):
+            try: 
+                foo = int(activity_table[0][i])
+            except ValueError:
+                continue
+        if activity_table[0][i][0:2] != 'NM' and activity_table[0][i][0:2] != 'NR': #assumes refseq
+            gene_col = i
+        print('using column %s of %s gene activity table for common names' % (gene_col + 1, activity_path))
+
+        
+        active_gene_list = [string.upper(line[gene_col]) for line in activity_table]
         tf_list_refseq = [line[0] for line in tf_table if active_gene_list.count(line[1]) > 0 and motif_tfs.count(line[1]) > 0]
         tf_list_name = utils.uniquify([line[1] for line in tf_table if active_gene_list.count(line[1]) > 0 and motif_tfs.count(line[1]) > 0])
     else:
@@ -212,8 +223,13 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
         overlap_gene_list = line[overlap_index].split(',')
         all_gene_list = closest_gene_list + proximal_gene_list + overlap_gene_list
         all_gene_list = [string.upper(gene) for gene in all_gene_list]
-
+        
+        #print(all_gene_list)
+        
+        #print(activity_path)
+        #print(active_gene_list)
         #gets a unique list of all tfs
+        
         if len(activity_path) > 0:
             all_gene_list = utils.uniquify([gene for gene in all_gene_list if active_gene_list.count(gene) > 0])
         else:
@@ -236,6 +252,7 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
 
     #now iterate through each gene and list the enhancers
     gene_list = gene_to_enhancer_dict.keys()
+    print(gene_list)
     gene_list.sort()
     for gene in gene_list:
         if tf_list_name.count(gene) > 0:
@@ -524,6 +541,8 @@ def findMotifs(subpeakFasta,bg_path,candidate_tf_list, projectFolder, analysis_n
         motifDatabaseDict[line[1]].append(line[0])
 
     candidate_tf_list.sort()
+    
+    print(candidate_tf_list)
 
     #now make a list of all motifs
     motif_list = []
@@ -891,7 +910,7 @@ def main():
     parser.add_argument("-a","--activity",dest="activity", default = None,type=str,
                         help = "A table with active gene names in the first column",required=False)
     parser.add_argument("-l","--extension-length", dest="extension", default=100,type=int,
-                        help = "Enter the length to extend subpeak regions for motif finding",required=False)
+                        help = "Enter the length to extend subpeak regions for motif finding. default is 100",required=False)
     parser.add_argument("-B","--background", dest="background", default=None,type=str,
                         help = "Provide a background BAM file",required=False)
     parser.add_argument("-N", "--number", dest="number", default=1,type=int,

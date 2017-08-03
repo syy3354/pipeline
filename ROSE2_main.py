@@ -604,25 +604,25 @@ def main():
     time.sleep(20)
     superTableFile = "%s_SuperEnhancers.table.txt" % (inputName)
     if options.control:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s &" % (genome, options.rankby, options.control, outFolder, superTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s" % (genome, options.rankby, options.control, outFolder, superTableFile)
     else:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s &" % (genome, options.rankby, outFolder, superTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s" % (genome, options.rankby, outFolder, superTableFile)
     os.system(cmd)
 
 
     stretchTableFile = "%s_StretchEnhancers.table.txt" % (inputName)
     if options.control:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s &" % (genome, options.rankby, options.control, outFolder, stretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s" % (genome, options.rankby, options.control, outFolder, stretchTableFile)
     else:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s &" % (genome, options.rankby, outFolder, stretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s" % (genome, options.rankby, outFolder, stretchTableFile)
     os.system(cmd)
 
 
     superStretchTableFile = "%s_SuperStretchEnhancers.table.txt" % (inputName)
     if options.control:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s &" % (genome, options.rankby, options.control, outFolder, superStretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s" % (genome, options.rankby, options.control, outFolder, superStretchTableFile)
     else:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s &" % (genome, options.rankby, outFolder, superStretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s" % (genome, options.rankby, outFolder, superStretchTableFile)
     os.system(cmd)
 
 
