@@ -208,12 +208,27 @@ def bedToGFF(bed, output=''):
 
     gff = []
 
+    #determine if this is a long bed or a short bed
+
+    if len(bed[0]) == 6: # this is a full format bed
+        bed_style = 'long'
+    elif len(bed[0]) == 5: # this is the medium  length bed with strand
+        bed_style = 'medium'
+    elif len(bed[0]) == 3: # this is the minimum length bed
+        bed_style = 'short'
+    else:
+        print('this is probably not actually a bed')
+        print(bed[0])
+        print('exiting now because the bed is sad')
+        sys.exit()
+    print('this bed has %s columns and is a %s bed' % (len(bed[0]),bed_style))
     for line in bed:
-        try:
+        if bed_style == 'long':
             gffLine = [line[0],line[3],'',line[1],line[2],line[4],line[5],'',line[3]]
-        except IndexError:
-            print(line)
-            sys.exit()
+        if bed_style == 'medium':
+            gffLine = [line[0],'','',line[1],line[2],'',line[4],'','']
+        if bed_style == 'short':
+            gffLine = [line[0],'','',line[1],line[2],'','.','','']
         gff.append(gffLine)
 
 

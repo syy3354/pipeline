@@ -480,7 +480,7 @@ def main():
     # LOADING IN THE BOUND REGION REFERENCE COLLECTION
     print('LOADING IN GFF REGIONS')
     referenceCollection = utils.gffToLocusCollection(inputGFF)
-
+    print('STARTING WITH %s INPUT REGIONS' % (len(referenceCollection)))
     print('CHECKING REFERENCE COLLECTION:')
     checkRefCollection(referenceCollection)
         
@@ -489,16 +489,19 @@ def main():
     # see if there's a mask
     if options.mask:
         maskFile = options.mask
-        # if it's a bed file
+        print('USING MASK FILE %s' % (maskFile))
+        #if it's a bed file
         if maskFile.split('.')[-1].upper() == 'BED':
             maskGFF = utils.bedToGFF(maskFile)
         elif maskFile.split('.')[-1].upper() == 'GFF':
             maskGFF = utils.parseTable(maskFile, '\t')
         else:
             print("MASK MUST BE A .gff or .bed FILE")
-            sys.exit()
-        maskCollection = utils.gffToLocusCollection(maskGFF)
 
+
+
+        maskCollection = utils.gffToLocusCollection(maskGFF)
+        print('LOADING %s MASK REGIONS' % (len(maskCollection)))
         # now mask the reference loci
         referenceLoci = referenceCollection.getLoci()
         filteredLoci = [locus for locus in referenceLoci if len(maskCollection.getOverlap(locus, 'both')) == 0]
