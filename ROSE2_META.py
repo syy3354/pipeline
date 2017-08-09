@@ -391,8 +391,8 @@ def collapseRegionMap(regionMapFile,name='',controlBams=False):
             newLine = list(line[0:6])
             if controlBams:
                 signalLine = [float(x) for x in line[6:]]
-                rankbyIndexes = range(0,len(signalLine),2)
-                controlIndexes = range(1,len(signalLine),2)
+                rankbyIndexes = range(0,len(signalLine)/2,1)
+                controlIndexes = range(len(signalLine)/2,len(signalLine),1)
                 metaVector = []
                 for i,j in zip(rankbyIndexes,controlIndexes):
                     #min signal is 0
