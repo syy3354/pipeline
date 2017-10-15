@@ -308,8 +308,8 @@ geneTable = read.delim(geneTablePath,sep='\t')
 #========================================================
 
 #for all
-#plotContribution(geneTable,analysisName,outputFolder)
-#runWaterfall(geneTable,analysisName,outputFolder)
+plotContribution(geneTable,analysisName,outputFolder)
+runWaterfall(geneTable,analysisName,outputFolder)
 
 
 #top N
