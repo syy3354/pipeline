@@ -440,8 +440,8 @@ def main():
     bashFile.write('#!/usr/bin/bash\n')
 
     #sbatch funky junk
-    cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/serial_test_%j.out # Standard output and error log'
-    bashFile.write(cmd+'\n')
+    #cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/serial_test_%j.out # Standard output and error log'
+    #bashFile.write(cmd+'\n')
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%Hh%Mm%Ss')
     cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/bwt2_%s_%s' % (uniqueID,timestamp) + '_%j.out # Standard output and error log'

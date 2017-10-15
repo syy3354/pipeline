@@ -215,7 +215,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #def callGenePlot(dataFile,geneID,plotName,annotFile,namesList,outputFolder,region='TXN',yScale = 'UNIFORM'):
 
 #BATCH PLOTTING REGIONS
-#def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=True):
+#def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=True,bed ='',plotType= 'MULTIPLE',extension=200,multiPage = False,debug=False,nameString = '',rpm=True,rxGenome = '',scaleFactorString =''):
 
 #-------------------------------------------------------------------------#
 #                                                                         #
@@ -259,7 +259,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #-------------------------------------------------------------------------#
 
 #MAKING EXPRESSION TABLES
-#def mapHisat(dataFile,namesList=[],useSRA=True,pCount=16,Launch=True):
+#def mapHisat(dataFile,namesList=[],useSRA=False,pCount=16,Launch=True):
 #def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
 #def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
 
@@ -277,7 +277,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #                                                                         #
 #-------------------------------------------------------------------------#
 
-#def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False)
+#def makeTrackHub(analysis_name,project_folder,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False)
 
 
 #============================================================================================================
@@ -858,13 +858,19 @@ def makeBowtieBashJobs(dataFile,namesList = [],launch=True,overwrite=False,param
                 cmd = "bash %s%s_bwt2.sh &" % (outputFolder,uniqueID)
                 os.system(cmd)
 
-def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,pCount=1):
+def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,pCount=1,paramString=''):
 
     '''
     makes a mapping bash script and launches
     '''
-    paramString = '-p %s' % (pCount)
-
+    if paramString.count('-p') >0:
+        print('Error: specify processor count in the pCount argument')
+        sys.exit()
+    if paramString[0] == ' ':
+        paramString = paramString[1:] 
+    paramString += ' -p %s' % (pCount)
+    print('Using a parameter string of:')
+    print(paramString)
     #hardCoded index locations
     dataDict = loadDataTable(dataFile)
 
@@ -889,14 +895,6 @@ def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,
         #get the unique ID
         uniqueID = dataDict[name]['uniqueID']
 
-        #see if the dataset is already entered into TONY
-        #get the parent tony folder
-        #tonyFolder = getTONYInfo(uniqueID,column = 30)
-        # print(tonyFolder)
-        # if tonyFolder:
-        #     outputFolder = tonyFolder
-        # else:
-        #     outputFolder = dataDict[name]['folder']
 
         outputFolder = dataDict[name]['folder']
         outputFolder = formatFolder(outputFolder,create=True)
@@ -943,7 +941,7 @@ def splitChipRXBams(dataFile,genome1='',genome2='',namesList=[],header1='',heade
     #genome1 is primary genome
     #genome2 is secondary genome
     #header 1 is the path to the header for genome1 sam files
-    #header 2 is the path to the header for genome2 same files
+    #header 2 is the path to the header for genome2 sam files
 
 
 
@@ -3341,7 +3339,7 @@ def callRose2Slurm(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMa
 #                                                                         #
 #-------------------------------------------------------------------------#
 
-def mapHisat(dataFile,namesList=[],projectFolder='',useSRA=True,pCount=16,Launch=True):
+def mapHisat(dataFile,namesList=[],projectFolder='',useSRA=False,pCount=16,Launch=True):
     
    # '''
    # maps using hisat2 if useSRA is flagged will try to extract an SRA ID from the fastq path and call directly
@@ -3369,7 +3367,9 @@ def mapHisat(dataFile,namesList=[],projectFolder='',useSRA=True,pCount=16,Launch
                            'MM9': '/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Hisat2Index/mm9',
                            'RN6_ERCC': '/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Hisat2Index_ERCC/rn6_ercc',
                            'RN6': '/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Hisat2Index/rn6',
-                           'HG19_ERCC': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Hisat2Index_ERCC/hg19_ercc'
+                           'HG19_ERCC': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Hisat2Index_ERCC/hg19_ercc',
+                           'HG19': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Hisat2Index/hg19', 
+                           'MM10': '/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Hisat2Index/mm10' 
                           }
 
     hisatIndex = hisatIndexDictionary[genome]
@@ -5199,7 +5199,7 @@ def processGecko(dataFile,geckoFolder,namesList = [],overwrite=False,scoringMeth
 #===================MAKE UCSC TRACKHUB FILES===============================
 #==========================================================================
 
-def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False):
+def makeTrackHub(analysis_name,project_folder,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False):
     #dataFileList will take several data tables and use them to create a track hub. This will not include background samples, because they do not have wiggle files
     #analysis_name is the name of your project
     #wiggle_dir is the path to where the wiggle files for this analysis live; will default to '/storage/cylin/grail/projects/analysis_name/wiggles' if left blank
@@ -5225,7 +5225,7 @@ def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_d
 
     urlBase = 'http://taco-wiki.grid.bcm.edu/'
     if wiggle_dir == '':
-        wiggle_dir = '/storage/cylin/grail/projects/'+analysis_name+'/wiggles/'
+        wiggle_dir = project_folder+'wiggles/'
 
     allData = []
     bgNames = []
@@ -5313,7 +5313,9 @@ def makeTrackHub(analysis_name,chrom_sizes, dataFileList=[], wiggle_dir='',web_d
 
     for line in allData:
         name = line[3]
+        print('name: ' + name)
         input_wig = wiggle_dir+ name + wig_str
+        print('input_wig: ' + input_wig)
         bigwig_name = name + '.bw'
         bigwig_out = '{}/{}'.format(
             genomeFolderName,
