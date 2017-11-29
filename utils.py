@@ -210,6 +210,9 @@ def bedToGFF(bed, output=''):
 
     #determine if this is a long bed or a short bed
 
+    print(len(bed[0]))
+    print(bed[0])
+
     if len(bed[0]) == 6: # this is a full format bed
         bed_style = 'long'
     elif len(bed[0]) == 5: # this is the medium  length bed with strand

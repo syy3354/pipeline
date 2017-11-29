@@ -858,7 +858,7 @@ def makeBowtieBashJobs(dataFile,namesList = [],launch=True,overwrite=False,param
                 cmd = "bash %s%s_bwt2.sh &" % (outputFolder,uniqueID)
                 os.system(cmd)
 
-def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,pCount=1,paramString=''):
+def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,pCount=1,paramString=' '):
 
     '''
     makes a mapping bash script and launches
@@ -907,7 +907,7 @@ def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,
             foo = open(dataDict[name]['bam'],'r')
             if not overwrite:
                 print('BAM file already exists for %s. OVERWRITE = FALSE' % (name))
-                sys.exit()
+                pass
             else:
                 run = True
         except IOError:
@@ -970,7 +970,9 @@ def splitChipRXBams(dataFile,genome1='',genome2='',namesList=[],header1='',heade
         bashFile.write(cmd+'\n')
         bashFile.write('\n\n\n')
 
-        cmd = 'samtools view -h -o %s%s.sam %s%s.%s.bwt2.sorted.bam' % (bam_dir,uniqueID,bam_dir,uniqueID,genome1)
+        
+
+        cmd = 'samtools view -h -o %s%s.sam %s%s.%s_%s.bwt2.sorted.bam' % (bam_dir,uniqueID,bam_dir,uniqueID,genome1,genome2)
         bashFile.write(cmd+'\n')
 
         outSam = '%s%s.sam' % (bam_dir,uniqueID)
@@ -3371,7 +3373,7 @@ def mapHisat(dataFile,namesList=[],projectFolder='',useSRA=False,pCount=16,Launc
                            'HG19': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Hisat2Index/hg19', 
                            'MM10': '/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Hisat2Index/mm10' 
                           }
-
+    
     hisatIndex = hisatIndexDictionary[genome]
 
 

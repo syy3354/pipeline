@@ -609,16 +609,27 @@ def collapseFimo(fimo_output,gene_to_enhancer_dict,candidate_tf_list,output_fold
 
     fimoTable = utils.parseTable(fimo_output,'\t')
     print(fimo_output)
+
+    #fimo sometimes puts the region in either the first or second column
+    fimo_line = fimoTable[1]
+    if fimo_line[1].count('|') >0:
+        region_index = 1
+    else:
+        region_index = 2
+    print('USING COLUMN %s OF FIMO OUTPUT FOR REGION' % (region_index))
+
     for line in fimoTable[1:]:
         source_tfs = motifDatabaseDict[line[0]]   #motifId
         for source in source_tfs:
             if candidate_tf_list.count(source) == 0:
                 continue
-            region = line[2].split('|')
+            region = line[region_index].split('|')
 
             target = region[0]
-
-            target_locus = utils.Locus(region[1],int(region[2]) + int(line[3]), int(region[2]) + int(line[4]),'.')
+            if region_index == 2:
+                target_locus = utils.Locus(region[1],int(region[2]) + int(line[3]), int(region[2]) + int(line[4]),'.')
+            else:
+                target_locus = utils.Locus(region[1],int(region[2]) + int(line[2]), int(region[2]) + int(line[3]),'.')
             #what's missing here is the enhancer id of the target locus
             try:
                 edgeDict[source][target].append(target_locus)
