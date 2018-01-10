@@ -134,13 +134,27 @@ def open(fileName,mode='r'):
 #table = parseTable('file.txt','\t')
 def parseTable(fn, sep, header = False,excel = False):
     fh = open(fn)
+
+    line = fh.readline()
+    if line.count('\r') >0:
+        excel =True
+    fh.close()
+    fh = open(fn)
     if header == True:
         header = fh.readline() #disposes of the header
+    
+    #first figure out if this table came from excel and has \r for line breaks
 
     table = []
-    for line in fh:
-        line = line.rstrip().split(sep)
-        table.append(line)
+    if excel:
+        lines_raw = fh.readlines()
+        lines = lines_raw[0].split('\r')
+        for line in lines:
+            table.append(line.split(sep))
+    else:
+        for line in fh:
+            line = line.rstrip().split(sep)
+            table.append(line)
 
     fh.close()
 

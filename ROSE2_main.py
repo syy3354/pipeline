@@ -511,7 +511,6 @@ def main():
     # NOW STITCH REGIONS
     print('STITCHING REGIONS TOGETHER')
     stitchedCollection, debugOutput, stitchWindow = regionStitching(referenceCollection, inputName, outFolder, stitchWindow, tssWindow, annotFile, removeTSS)
-
     # NOW MAKE A STITCHED COLLECTION GFF
     print('MAKING GFF FROM STITCHED COLLECTION')
     stitchedGFF = utils.locusCollectionToGFF(stitchedCollection)
