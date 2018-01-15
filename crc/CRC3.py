@@ -101,7 +101,7 @@ class Genome:
 #================================================================================
 
 
-def loadGenome(genome_build):
+def loadGenome(genome_build,config_file = ''):
 
     '''
     loads annotation for a genome into a genome object
@@ -110,6 +110,8 @@ def loadGenome(genome_build):
     #this nested dictionary has all of the useful information and likely will have to be
     #edited so it can be configured any time
     genome_build = string.upper(genome_build)
+
+        
     genomeDict = {
         'HG19':{'annot_file':'%sannotation/hg19_refseq.ucsc' % (pipeline_dir),
                 'genome_directory':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
@@ -126,10 +128,20 @@ def loadGenome(genome_build):
                 }
 
         }
+
+    #allow an optional config file to overwrite default paths
+    if len(config_file) >0:
+        config_table = utils.parseTable(config_file,'\t')
+        for line in config_table[1:]:
+            (build,field,feature_path) = line[0].split(':')
+            genomeDict[string.upper(build)][string.lower(field)] = feature_path
     
     if genome_build not in genomeDict:
         print('ERROR: UNSUPPORTED GENOME BUILD %s. EXITING NOW' % (genome_build))
         sys.exit()
+    else:
+        print('USING BUILD %s WITH FOLLOWING FIELDS:' % genome_build))
+        print(genomeDict[genome_build])
 
     #now attempt to load the genome
     genome = Genome(genome_build,genomeDict[genome_build]['genome_directory'],genomeDict[genome_build]['annot_file'])
@@ -930,6 +942,9 @@ def main():
                         help = "Enter additional PWM file for the analysis",required=False)
     parser.add_argument("-t","--tfs", dest="tfs",default=None,type=str,
                         help = "Enter additional TFs (comma separated) to be used in the bindinf analysis",required=False)
+    parser.add_argument("--config", dest="config",default=None,type=str,
+                        help = "Enter genome configuration file to overwrite default paths",required=False)
+
 
     args = parser.parse_args()
 
