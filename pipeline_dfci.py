@@ -553,7 +553,8 @@ def loadDataTable(dataFile):
         dataDict[line[3]]['enriched'] = line[5]
         dataDict[line[3]]['background'] = line[4]
         dataDict[line[3]]['enrichedMacs'] = line[6]
-        dataDict[line[3]]['color'] = line[7]
+        color_string = string.replace(line[7],'"','')
+        dataDict[line[3]]['color'] = color_string
         dataDict[line[3]]['fastq']=line[8]
 
 

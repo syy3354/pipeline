@@ -42,19 +42,24 @@ THE SOFTWARE.
 
 
 import sys
-
+import os
 print "Using python version %s" % sys.version
 
 
 #importing utils package
-sys.path.append('/storage/cylin/home/cl6/src/pipeline/')
+#add locations of files and global parameters in this section
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+
+pipeline_dir = whereAmI + '/'
+
+sys.path.append(pipeline_dir)
 
 import argparse
 import cPickle
 import utils
 import pipeline_dfci
 import subprocess
-import os
+
 import string
 import tempfile
 import zlib

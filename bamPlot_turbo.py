@@ -33,14 +33,19 @@ THE SOFTWARE.
 import argparse
 import cPickle
 import sys
-import utils
-import pipeline_dfci
 import subprocess
 import os
 import string
 import tempfile
 import zlib
 from distutils.spawn import find_executable
+
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+pipeline_dir = whereAmI + '/'
+
+sys.path.append(pipeline_dir)
+import utils
+import pipeline_dfci
 
 # Try to use the bamliquidatior script on cluster, otherwise, failover to local default, otherwise fail.
 bamliquidatorString = '/storage/cylin/bin/pipeline/bamliquidator_internal/bamliquidator'

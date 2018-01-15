@@ -41,8 +41,16 @@ can perform initial enhancer mapping or draw from a set of finished rose outputs
 #==========================================================================
 
 
+
 import sys
-sys.path.append('/storage/cylin/home/cl6/pipeline/')
+import os
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+
+pipelineFolder = '%s/' % (whereAmI) # need to set this to where this code is stored
+
+sys.path.append(pipelineFolder)
+
+
 
 import pipeline_dfci
 import utils
@@ -680,8 +688,8 @@ def main():
         #=============GENE MAPPING BY CLUSTER=================
         #=====================================================
 
-        os.chdir('/storage/cylin/home/cl6/pipeline/')
-        cmd = 'python /storage/cylin/home/cl6/pipeline/ROSE2_geneMapper.py -g %s -i %s' % (genome,clusterTableFile)
+        os.chdir(pipelineFolder)
+        cmd = 'python %sROSE2_geneMapper.py -g %s -i %s' % (pipelineFolder,genome,clusterTableFile)
         os.system(cmd)
 
         print "FINISHED"
