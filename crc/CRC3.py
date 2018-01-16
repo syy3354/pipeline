@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-
+B#!/usr/bin/env python
+1;95;0c
 ######################
 #
 # Core Regulatory Circuits
@@ -942,7 +942,7 @@ def main():
                         help = "Enter additional PWM file for the analysis",required=False)
     parser.add_argument("-t","--tfs", dest="tfs",default=None,type=str,
                         help = "Enter additional TFs (comma separated) to be used in the bindinf analysis",required=False)
-    parser.add_argument("--config", dest="config",default=None,type=str,
+    parser.add_argument("--config", dest="config",default='',type=str,
                         help = "Enter genome configuration file to overwrite default paths",required=False)
 
 
@@ -961,7 +961,7 @@ def main():
     # Define all global file names
     ###
     print(args)
-    genome = loadGenome(args.genome)
+    genome = loadGenome(args.genome,args.config)
 
     motifDatabaseFile = genome.returnFeature('motif_database')
     motifConvertFile = genome.returnFeature('motif_convert')
@@ -1098,7 +1098,7 @@ def main():
     #============================V. RUNNING NETWORK ANALYSIS==============================
     #=====================================================================================
 
-    print('\n\n#======================================\n#========V. BUILDING NETWORK============\n#======================================\n')
+    print('\n\n#======================================\n#========V. BUILDING NETWORK===========\n#======================================\n')
 
 
     print('building graph and edge table')
