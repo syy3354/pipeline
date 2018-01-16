@@ -3258,7 +3258,7 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
             macsFile = inputFile
         outputFolder = "%s%s_ROSE" % (parentFolder,name)
         print(name)
-        bashFile.write('#running ROSE2 on %s\n' % (name)
+        bashFile.write('#running ROSE2 on %s\n' % (name))
         roseCmd = 'python ROSE2_main.py -g %s -i %s -r %s -o %s -t %s' % (genome,macsFile,bamFile,outputFolder,tss)
 
         if len(str(stitch)) > 0:
