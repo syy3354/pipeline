@@ -3406,7 +3406,7 @@ def call_crc(analysis_name,enhancer_path,subpeak_path,activity_path,genome,crc_f
 
     if len(crc_folder) == 0:
         
-        crc_folder = utils.formatFolder('./crc' % ,True)
+        crc_folder = utils.formatFolder('./crc',True)
     else:
         crc_folder = utils.formatFolder(crc_folder,True)
 
