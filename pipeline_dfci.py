@@ -3424,7 +3424,7 @@ def call_crc(analysis_name,enhancer_path,subpeak_path,activity_path,genome,crc_f
     crc_bash = open(crc_bash_path,'w')
     crc_bash.write('#!/usr/bin/bash\n\n')
 
-    crc_bash.write('running crc for %s' % (analysis_name))
+    crc_bash.write('#running crc for %s\n' % (analysis_name))
     crc_bash.write(crc_cmd +'\n')
     crc_bash.close()
 
