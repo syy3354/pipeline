@@ -3234,7 +3234,7 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
     if len(bashFileName) == 0:
         bashFileName = '%srose_%s_%s.sh' % (parentFolder,timeStamp,randTicker)
     bashFile = open(bashFileName,'w')
-    bashFile.write("cd %s" % (whereAmI))
+    bashFile.write("cd %s" % (pipelineFolder))
     bashFile.write('\n')
 
     mapString = [dataDict[name]['bam'] for name in extraMap]
@@ -3269,7 +3269,6 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
         if len(mask) >0:
             roseCmd += ' --mask %s' % (mask)
 
-        roseCmd += ' &'
         bashFile.write(roseCmd)
         bashFile.write('\n')
 
