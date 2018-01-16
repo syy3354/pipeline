@@ -25,7 +25,7 @@ pipeline_dir = '/'.join(whereAmI.split('/')[0:-2]) + '/pipeline/'
 print(pipeline_dir)
 
 sys.path.append(pipeline_dir)
-sys.exit()
+
 import utils
 
 
