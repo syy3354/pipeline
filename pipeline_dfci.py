@@ -252,6 +252,16 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask=''):
 #def callRose2Slurm(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask=''):
 
+
+#-------------------------------------------------------------------------#
+#                                                                         #
+#                               CRC TOOLS                                 #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+
+#def call_crc(analysis_name,enhancer_path,subpeak_path,activity_path,crc_folder=''):
+
 #-------------------------------------------------------------------------#
 #                                                                         #
 #                          EXPRESSION TOOLS                               #
@@ -3374,6 +3384,53 @@ def callRose2Slurm(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMa
 
     print ('Wrote rose commands to %s' % (bashFileName))
     return bashFileName
+
+
+#-------------------------------------------------------------------------#
+#                                                                         #
+#                               CRC TOOLS                                 #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+
+
+def call_crc(analysis_name,enhancer_path,subpeak_path,activity_path,genome,crc_folder='',args ='',py27_path =''):
+
+    '''
+    runs crc
+    '''
+    
+    #if no python path is provide use default python
+    if py27_path == '':
+        py27_path = 'python'
+
+    if len(crc_folder) == 0:
+        
+        crc_folder = utils.formatFolder('./crc' % ,True)
+    else:
+        crc_folder = utils.formatFolder(crc_folder,True)
+
+
+    output_folder = utils.formatFolder('%s%s' % (crc_folder,analysis_name),True)
+
+    crc_cmd = '%s %scrc/CRC3.py -e %s -g %s -o %s -n %s -s %s -a %s' % (py27_path,pipelineFolder,enhancer_path,genome,output_folder,analysis_name,subpeak_path,activity_path)
+    if len(args) > 0:
+        if args[0] != ' ': #adds an extra space
+            args = ' ' + args
+
+        crc_cmd += args
+    crc_bash_path = '%s%s_crc.sh' % (crc_folder,analysis_name)
+
+    crc_bash = open(crc_bash_path,'w')
+    crc_bash.write('#!/usr/bin/bash\n\n')
+
+    crc_bash.write('running crc for %s' % (analysis_name))
+    crc_bash.write(crc_cmd +'\n')
+    crc_bash.close()
+
+    print('wrote crc command for %s to %s' % (analysis_name,crc_bash_path))
+    return crc_bash_path
+
 
 
 

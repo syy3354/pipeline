@@ -140,7 +140,7 @@ def loadGenome(genome_build,config_file = ''):
         print('ERROR: UNSUPPORTED GENOME BUILD %s. EXITING NOW' % (genome_build))
         sys.exit()
     else:
-        print('USING BUILD %s WITH FOLLOWING FIELDS:' % genome_build))
+        print('USING BUILD %s WITH FOLLOWING FIELDS:' % (genome_build))
         print(genomeDict[genome_build])
 
     #now attempt to load the genome
