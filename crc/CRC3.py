@@ -21,11 +21,11 @@ import string
 
 whereAmI = os.path.dirname(os.path.realpath(__file__))
 print(whereAmI)
-pipeline_dir = '%s' % (string.replace(whereAmI,'crc','')) # need to set this to where this code is stored
-
+pipeline_dir = '/'.join(whereAmI.split('/')[0:-2]) + '/pipeline/'
+print(pipeline_dir)
 
 sys.path.append(pipeline_dir)
-print(pipeline_dir)
+sys.exit()
 import utils
 
 
