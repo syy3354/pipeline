@@ -748,11 +748,26 @@ def formatNetworkOutput(graph, output_folder, analysis_name, candidate_tf_list):
 
     # output the adjacency list and nodelist
     nodeFile = output_folder + analysis_name + '_NODELIST.txt'
-    nodeList = [ [n] for n in graph.nodes_iter()]
+    if nx.__version__[0] == '1':
+        nodeList = [ [n] for n in graph.nodes_iter()]
+    elif nx.__version__[0] == '2':
+        nodeList = [[n] for n in graph.nodes()]
+    else:
+        print('ERROR: UNSUPPORTED VERSION OF NETWORKX MODULE')
+        sys.exit()
     utils.unParseTable(nodeList, nodeFile, '\t')
 
     adjFile = output_folder + analysis_name + '_ADJ_LIST.txt'
-    adjList = graph.adjacency_list()
+    
+    if nx.__version__[0] == '1':
+        adjList = graph.adjacency_list()
+    elif nx.__version__[0] == '2':
+        adjList = [n[1].keys() for n in graph.adjacency()]
+    else:
+        print('ERROR: UNSUPPORTED VERSION OF NETWORKX MODULE')
+        sys.exit()
+
+    
     utils.unParseTable(adjList, adjFile, '\t')
 
     edgesTable = [['From', 'To']]
@@ -1107,7 +1122,7 @@ def main():
     formatNetworkOutput(graph, output_folder, analysis_name, candidate_tf_list)
 
         
-    print('yay')
+    print('FINISHED RUNNING CRC FOR %s' % (analysis_name))
 
     sys.exit()
 
