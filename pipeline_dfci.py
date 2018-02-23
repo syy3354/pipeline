@@ -381,7 +381,7 @@ def formatDataTable(dataFile):
         #if the first three are filled in, check to make sure there are 8 columns
         else:
             if len(line) > 3 and len(line) < 9:
-                newLine = line + (9-len(line))*['']
+                newLine = line + (8-len(line))*[''] + ['NA']
                 newDataTable.append(newLine)
             elif len(line) >= 9:
                 newLine = line[0:9]
@@ -3603,6 +3603,13 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
                 if '-_.'.count(coreName[-1]) == 1:  #get rid of any separators for a core name
                     coreName = coreName[:-1]
             namesStringList.append(coreName)
+        print('Using the following as group names')
+        print(namesStringList)
+        if len(utils.uniquify(namesStringList)) != len(groupList):
+            print('Error: only found %s unique group strings to go with %s groups' % (len(utils.uniquify(namesStringList)),len(groupList)))
+
+            sys.exit()
+                      
             groupTicker+=1
         namesString = ','.join(namesStringList)
             
@@ -3727,6 +3734,12 @@ def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[
                 if '-_.'.count(coreName[-1]) == 1:  #get rid of any separators for a core name
                     coreName = coreName[:-1]
             namesStringList.append(coreName)
+        print('Using the following as group names')
+        print(namesStringList)
+        if len(utils.uniquify(namesStringList)) != len(groupList):
+            print('Error: only found %s unique group strings to go with %s groups' % (len(utils.uniquify(namesStringList)),len(groupList)))
+            sys.exit()
+
             groupTicker+=1
         namesString = ','.join(namesStringList)
 

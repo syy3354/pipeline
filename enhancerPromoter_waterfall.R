@@ -241,7 +241,7 @@ runWaterfall <- function(geneTable,analysisName,outputFolder,top=0,geneList = c(
 	gctHeader[3,]=c('NAME','DESCRIPTION','PROMOTER','DISTAL')
 	gctCombined = rbind(gctHeader,gctMatrix)
 	write.table(gctCombined,file=filename_gct,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)	
-	
+
 	
 	#making the cls
 	filename_cls= paste(outputFolder,analysisName,'_top_', topString,'.cls',sep='')
@@ -252,45 +252,74 @@ runWaterfall <- function(geneTable,analysisName,outputFolder,top=0,geneList = c(
 	clsTable[3,1]='PROMOTER'
 	clsTable[3,2]='DISTAL'
 	write.table(clsTable,file=filename_cls,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)		
-	
-	#making the gct and cls in log space
-	#making the gct
-	filename_gct= paste(outputFolder,analysisName,'_top_', topString,'_log2.gct',sep='')
+
+
+	#making the gct and cls for total contribution
+	filename_gct= paste(outputFolder,analysisName,'_top_', topString,'_total_contrib.gct',sep='')
 	gctMatrix =matrix(ncol=4,nrow=nrow(topContribOrderedTable))
-	colnames(gctMatrix) = c('NAME','DESCRIPTION','PROMOTER','DISTAL')
-	for(i in 1:length(enhancerContribOrder)){
-		row = enhancerContribOrder[i]
-		gctMatrix[i,1] = as.character(topContribOrderedTable[row,1])
-		if(topContribOrderedTable[row,6] <=0){
-			gctMatrix[i,3] = 1/2^topContribOrderedTable[row,6]
-			gctMatrix[i,4] = 1
-		}else{
-			gctMatrix[i,3] = 1
-			gctMatrix[i,4] = 2^topContribOrderedTable[row,6]		
-		}
-	}
-	gctMatrix[,1]= as.character(topContribOrderedTable[enhancerContribOrder,1])
-	gctMatrix[,3]= topContribOrderedTable[,2]
-	gctMatrix[,4]= topContribOrderedTable[,3]
+	colnames(gctMatrix) = c('NAME','DESCRIPTION','BACKGROUND','SIGNAL')
+	gctMatrix[,1]= as.character(topContribOrderedTable[,1])
+	gctMatrix[,3]= as.numeric(rep(1,nrow(gctMatrix)))
+	gctMatrix[,4]= topContribOrderedTable[,3] + topContribOrderedTable[,2]
 	
 	gctHeader = matrix(data='',ncol=4,nrow=3)
 	gctHeader[1,1]='#1.2'
 	gctHeader[2,1]=nrow(topContribOrderedTable)
 	gctHeader[2,2]='2'
-	gctHeader[3,]=c('NAME','DESCRIPTION','PROMOTER','DISTAL')
+	gctHeader[3,]=c('NAME','DESCRIPTION','BACKGROUND','SIGNAL')
 	gctCombined = rbind(gctHeader,gctMatrix)
 	write.table(gctCombined,file=filename_gct,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)	
-	
-	
-	#making the cls
-	filename_cls= paste(outputFolder,analysisName,'_top_', topString,'_log2.cls',sep='')
+
+	# making the cls
+	filename_cls= paste(outputFolder,analysisName,'_top_', topString,'_total_contrib.cls',sep='')
 	clsTable = matrix(data='',ncol=3,nrow=3)
 	clsTable[1,] =c(2,2,1)
-	clsTable[2,1]=paste('#','PROMOTER',sep='')
-	clsTable[2,2]='DISTAL'
-	clsTable[3,1]='PROMOTER'
-	clsTable[3,2]='DISTAL'
-	write.table(clsTable,file=filename_cls,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)		
+	clsTable[2,1]=paste('#','BACKGROUND',sep='')
+	clsTable[2,2]='SIGNAL'
+	clsTable[3,1]='BACKGROUND'
+	clsTable[3,2]='SIGNAL'	
+	write.table(clsTable,file=filename_cls,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)
+
+
+	# #making the gct and cls in log space <- no longer used in the analysis
+	# #making the gct
+	# filename_gct= paste(outputFolder,analysisName,'_top_', topString,'_log2.gct',sep='')
+	# gctMatrix =matrix(ncol=4,nrow=nrow(topContribOrderedTable))
+	# colnames(gctMatrix) = c('NAME','DESCRIPTION','PROMOTER','DISTAL')
+	# for(i in 1:length(enhancerContribOrder)){
+	# 	row = enhancerContribOrder[i]
+	# 	gctMatrix[i,1] = as.character(topContribOrderedTable[row,1])
+	# 	if(topContribOrderedTable[row,6] <=0){
+	# 		gctMatrix[i,3] = 1/2^topContribOrderedTable[row,6]
+	# 		gctMatrix[i,4] = 1
+	# 	}else{
+	# 		gctMatrix[i,3] = 1
+	# 		gctMatrix[i,4] = 2^topContribOrderedTable[row,6]		
+	# 	}
+	# }
+	# gctMatrix[,1]= as.character(topContribOrderedTable[enhancerContribOrder,1])
+	# gctMatrix[,3]= topContribOrderedTable[,2]
+	# gctMatrix[,4]= topContribOrderedTable[,3]
+	
+	# gctHeader = matrix(data='',ncol=4,nrow=3)
+	# gctHeader[1,1]='#1.2'
+	# gctHeader[2,1]=nrow(topContribOrderedTable)
+	# gctHeader[2,2]='2'
+	# gctHeader[3,]=c('NAME','DESCRIPTION','PROMOTER','DISTAL')
+	# gctCombined = rbind(gctHeader,gctMatrix)
+	# write.table(gctCombined,file=filename_gct,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)	
+	
+	
+	# #making the cls
+	# filename_cls= paste(outputFolder,analysisName,'_top_', topString,'_log2.cls',sep='')
+	# clsTable = matrix(data='',ncol=3,nrow=3)
+	# clsTable[1,] =c(2,2,1)
+	# clsTable[2,1]=paste('#','PROMOTER',sep='')
+	# clsTable[2,2]='DISTAL'
+	# clsTable[3,1]='PROMOTER'
+	# clsTable[3,2]='DISTAL'
+	# write.table(clsTable,file=filename_cls,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)
+	
 	
 	
 }

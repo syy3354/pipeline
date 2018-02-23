@@ -626,41 +626,54 @@ def callRWaterfall(geneTablePath,outputFolder,analysisName,top):
         sys.exit()
 
 
-def callGSEA(outputFolder,analysisName,top):
+def callGSEA(outputFolder,analysisName,top,analysis_type ='enhancer_vs_promoter'):
 
     '''
     runs C2 GSEA
     '''
+
+    #figure out the suffix for gct and cls files
+    analysis_dict = {'enhancer_vs_promoter':['','#PROMOTER_versus_DISTAL'],
+                   'total_contribution':['_total_contrib','#SIGNAL_versus_BACKGROUND'],
+                   }
+    
+    if analysis_dict.has_key(analysis_type) == False:
+        print('Error: please use one of the following supported analysis types')
+        print(analysis_dict.keys())
+        sys.exit()
+
+    suffix = analysis_dict[analysis_type][0]
+
     gseaPath = '/storage/cylin/home/cl6/gsea2-3.0_beta_2.jar'
     gmxPath = '/storage/cylin/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
 
 
-    gseaBashFilePath = '%s%s_GSEA_cmd.sh' % (outputFolder,analysisName)
+    gseaBashFilePath = '%s%s_GSEA%s_cmd.sh' % (outputFolder,analysisName,suffix)
     gseaBashFile = open(gseaBashFilePath,'w')
 
     gseaBashFile.write('#!/usr/bin/bash\n\n')
 
-    gseaBashFile.write('#COMMAND LINE GSEA CALLS FOR %s\n\n' % (analysisName))
+    gseaBashFile.write('#COMMAND LINE GSEA CALLS FOR %s USING %s COMPARISON\n\n' % (analysisName,string.upper(analysis_type)))
     
     
     #for all
-    gctPath = '%s%s_top_all.gct' % (outputFolder,analysisName)
-    clsPath = '%s%s_top_all.cls' % (outputFolder,analysisName)
-    gseaOutputFolder = utils.formatFolder('%sgsea_top_all_c2' % (outputFolder),True)
-    rptLabel = '%s_top_all' % (analysisName)
+    gctPath = '%s%s_top_all%s.gct' % (outputFolder,analysisName,suffix)
+    clsPath = '%s%s_top_all%s.cls' % (outputFolder,analysisName,suffix)
+    gseaOutputFolder = utils.formatFolder('%sgsea_top_all_c2%s' % (outputFolder,suffix),True)
+    rptLabel = '%s_top_all%s' % (analysisName,suffix)
 
-    gseaCmd_all = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s#PROMOTER_versus_DISTAL -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,gmxPath,rptLabel,gseaOutputFolder)
+    gseaCmd_all = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s%s -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,analysis_dict[analysis_type][1],gmxPath,rptLabel,gseaOutputFolder)
 
     gseaBashFile.write(gseaCmd_all)
     gseaBashFile.write('\n')
 
     #for top N
-    gctPath = '%s%s_top_%s.gct' % (outputFolder,analysisName,top)
-    clsPath = '%s%s_top_%s.cls' % (outputFolder,analysisName,top)
-    gseaOutputFolder = utils.formatFolder('%sgsea_top_%s_c2' % (outputFolder,top),True)
-    rptLabel = '%s_top_%s' % (analysisName,top)
+    gctPath = '%s%s_top_%s%s.gct' % (outputFolder,analysisName,top,suffix)
+    clsPath = '%s%s_top_%s%s.cls' % (outputFolder,analysisName,top,suffix)
+    gseaOutputFolder = utils.formatFolder('%sgsea_top_%s_c2%s' % (outputFolder,top,suffix),True)
+    rptLabel = '%s_top_%s%s' % (analysisName,top,suffix)
 
-    gseaCmd_top = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s#PROMOTER_versus_DISTAL -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,gmxPath,rptLabel,gseaOutputFolder)
+    gseaCmd_top = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s%s -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,analysis_dict[analysis_type][1],gmxPath,rptLabel,gseaOutputFolder)
 
     gseaBashFile.write(gseaCmd_top)
     gseaBashFile.write('\n')
@@ -669,47 +682,62 @@ def callGSEA(outputFolder,analysisName,top):
     os.system('bash %s' % (gseaBashFilePath))
     
 
-def detectGSEAOutput(analysisName,outputFolder,top):
+def detectGSEAOutput(analysisName,outputFolder,top,analysis_type ='enhancer_vs_promoter'):
 
     '''
     tries to detect the .xls files that show up when GSEA is done running
     '''
 
+    #figure out the suffix for gct and cls files
+    analysis_dict = {'enhancer_vs_promoter':['','#PROMOTER_versus_DISTAL','PROMOTER','DISTAL'],
+                     'total_contribution':['_total_contrib','#SIGNAL_versus_BACKGROUND','SIGNAL','BACKGROUND'],
+                   }
+    
+    if analysis_dict.has_key(analysis_type) == False:
+        print('Error: please use one of the following supported analysis types')
+        print(analysis_dict.keys())
+        sys.exit()
+
+    suffix = analysis_dict[analysis_type][0]
+
     #first figure out the friggin output folder 
-    gseaParentFolder = '%sgsea_top_%s_c2/' % (outputFolder,top)
+    gseaParentFolder = '%sgsea_top_%s_c2%s/' % (outputFolder,top,suffix)
 
     for i in range(30):
         folderList = os.listdir(gseaParentFolder)
         #print(folderList)
         
-        candidateFolderList = [folder for folder in folderList if folder.count('%s_top_%s.Gsea' % (analysisName,top)) == 1]
+        candidateFolderList = [folder for folder in folderList if folder.count('%s_top_%s%s.Gsea' % (analysisName,top,suffix)) == 1]
         if len(candidateFolderList) > 1:
             print('ERROR: MULTIPLE GSEA OUTPUT FOLDERS DETECTED FOR %s WITH TOP %s GENES' % (analysisName,string.upper(str(top))))
             sys.exit()
         elif len(candidateFolderList) == 0:
             time.sleep(10)
         elif len(candidateFolderList) == 1:
-            candidateFolder = '%sgsea_top_%s_c2/%s/' % (outputFolder,top,candidateFolderList[0])
+            candidateFolder = '%sgsea_top_%s_c2%s/%s/' % (outputFolder,top,suffix,candidateFolderList[0])
 
     print('USING %s AS CANDIDATE GSEA FOLDER' % (candidateFolder))
     timeStamp = candidateFolder.split('.')[-1][:-1]
     print(timeStamp)
     #now that you have the candidate folder find the friggen xls files
+    
+    class_1 = analysis_dict[analysis_type][2]
+    class_2 = analysis_dict[analysis_type][3]
     #for promoter
-    promoterTablePath = '%sgsea_report_for_PROMOTER_%s.xls' % (candidateFolder,timeStamp)
-    distalTablePath = '%sgsea_report_for_DISTAL_%s.xls' % (candidateFolder,timeStamp)
-    print(promoterTablePath)
-    print(distalTablePath)
+    class1TablePath = '%sgsea_report_for_%s_%s.xls' % (candidateFolder,class_1,timeStamp)
+    class2TablePath = '%sgsea_report_for_%s_%s.xls' % (candidateFolder,class_2,timeStamp)
+    print(class1TablePath)
+    print(class2TablePath)
     #now check em
-    if utils.checkOutput(promoterTablePath,0.5,30):
-        print('FOUND PROMOTER OUTPUT AT %s' % (promoterTablePath))
-        if utils.checkOutput(distalTablePath,0.5,30):
-            print('FOUND DISTAL OUTPUT AT %s' % (distalTablePath))
-            return promoterTablePath,distalTablePath
+    if utils.checkOutput(class1TablePath,0.5,30):
+        print('FOUND %s OUTPUT AT %s' % (class1,class1TablePath))
+        if utils.checkOutput(class2TablePath,0.5,30):
+            print('FOUND %s OUTPUT AT %s' % (class2,class2TablePath))
+            return class1TablePath,class2TablePath
     else:
         print('ERROR: UNABLE TO FIND GSEA OUTPUT')
 
-def callR_GSEA(promoterTablePath,distalTablePath,outputFolder,analysisName,top):
+def callR_GSEA(class1TablePath,class2TablePath,outputFolder,analysisName,top):
     
     '''
     function to call the Rscript and to wait until the .cls and .gct files are created
@@ -720,7 +748,7 @@ def callR_GSEA(promoterTablePath,distalTablePath,outputFolder,analysisName,top):
     rBashFile = open(rBashFilePath,'w')
     rBashFile.write('#!/usr/bin/bash\n\n')
 
-    rCmd = 'Rscript %senhancerPromoter_gsea.R %s %s %s %s %s' % (pipeline_dir,promoterTablePath,distalTablePath,outputFolder,analysisName,top)
+    rCmd = 'Rscript %senhancerPromoter_gsea.R %s %s %s %s %s' % (pipeline_dir,class1TablePath,class2TablePath,outputFolder,analysisName,top)
     rBashFile.write(rCmd)
     rBashFile.close()
     print('writing R plotting command to disk and calling %s' %(rBashFilePath))
@@ -794,6 +822,12 @@ def main():
     #minimum arguments needed to proceed
     if args.bam and args.input and args.genome and args.output:
 
+        #=====================================================================================
+        #===============================I. PARSING ARGUMENTS==================================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#===========I. DATA SUMMARY============\n#======================================\n')
+
         #top analysis subset
         top = args.top
 
@@ -861,6 +895,13 @@ def main():
         startDict,tssCollection,genomeDirectory = loadAnnotFile(genome,window,geneList,True)
         print(len(startDict))
 
+        #=====================================================================================
+        #================II. IDENTIFYING TSS PROXIMAL AND DISTAL ELEMENTS=====================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#==II. MAPPING TO TSS/DISTAL REGIONS===\n#======================================\n')
+
+
         #now we need to split the input region 
         print('SPLITTING THE INPUT GFF USING A WINDOW OF %s' % (window))
         splitGFF = splitRegions(inputGFF,tssCollection)
@@ -909,21 +950,37 @@ def main():
         geneTablePath = '%s%s_GENE_TABLE.txt' % (outputFolder,analysisName)
         utils.unParseTable(geneTable,geneTablePath,'\t')
 
+        #=====================================================================================
+        #===================================III. PLOTTING ====================================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#===III. PLOTTING ENHANCER/PROMOTER===\n#======================================\n')
+
+
         #now call the R code
         print('CALLING R PLOTTING SCRIPTS')
         callRWaterfall(geneTablePath,outputFolder,analysisName,top)
 
+
+        #=====================================================================================
+        #==================================IV. RUNNING GSEA===================================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#============IV. RUNNING GSEA=========\n#======================================\n')
+
         #now let's call gsea
         print('RUNNING GSEA ON C2')
-        callGSEA(outputFolder,analysisName,top)        
-
+        callGSEA(outputFolder,analysisName,top,'enhancer_vs_promoter')       
+        callGSEA(outputFolder,analysisName,top,'total_contribution')        
         
         print('DETECTING GSEA OUTPUT FOR TOP %s GENES' % (top))
-        #for top 
-        top_promoterTablePath,top_distalTablePath = detectGSEAOutput(analysisName,outputFolder,top)
+        #for top by enhancer v promoter metric 
+        top_promoterTablePath,top_distalTablePath = detectGSEAOutput(analysisName,outputFolder,top,'enhancer_vs_promoter')
+        top_signalTablePath,top_backgroundTablePath = detectGSEAOutput(analysisName,outputFolder,top,'total_contribution')
 
         print('MAKING NES PLOTS FOR TOP %s GENES' % (top))
-        callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,top)
+        callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName+'_enhancer_vs_promoter',top)
+        callR_GSEA(top_signalTablePath,top_backgroundTablePath,outputFolder,analysisName+'_total_contribution',top)
 
 
         print('DETECTING GSEA OUTPUT FOR ALL GENES')
@@ -936,8 +993,6 @@ def main():
 
         #these files can be parsed to make the NES plot
 
-
-        #gsea_report_for_DISTAL_1459192369220.xls
         #[x for x in fileList if x.count('report_for') == 1and x.count('xls') ==1]
         print('ALL DONE WITH ANALYSIS FOR %s' % (analysisName))
         
