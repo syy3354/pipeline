@@ -217,6 +217,9 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #BATCH PLOTTING REGIONS
 #def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=True,bed ='',plotType= 'MULTIPLE',extension=200,multiPage = False,debug=False,nameString = '',rpm=True,rxGenome = '',scaleFactorString =''):
 
+#PLOTTING TF CORR HEATMAPS FROM CRC MOTIF BEDS
+#def plotCRCCorrMaps(analysis_name,motifBedDir,tf_list_path='',window=50)
+
 #-------------------------------------------------------------------------#
 #                                                                         #
 #                              META TOOLS                                 #
@@ -2317,10 +2320,9 @@ def mapEnrichedToGFF(dataFile,setName,gffList,cellTypeList,enrichedFolder,mapped
                 else:
                     mappedGFF[i+1].append(0)
 
-        out_path = outdir+gffName+'_'+setName+'.txt'
-        unParseTable(mappedGFF,out_path,'\t')
-        return out_path
-
+    out_path = outdir+gffName+'_'+setName+'.txt'
+    unParseTable(mappedGFF,out_path,'\t')
+    return out_path
 
 
 
@@ -2673,7 +2675,7 @@ def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=Fals
 #============================MAPPING WRAPPER===============================
 #==========================================================================
 
-def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianNorm=False,output=''):
+def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianNorm=False,output='',extendReadsTo=200):
 
     '''
     making a normalized binding signal table at all regions
@@ -2692,7 +2694,10 @@ def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianN
     for name in names_list:
         bam = Bam(dataDict[name]['bam'])
         read_length = bam.getReadLengths()[0]
-        bam_extension = 200-read_length
+        if int(extendReadsTo) < read_length:
+            print('Error: desired overall read extension %s is less than read length %s' % (extendReadsTo,read_length))
+            sys.exit()
+        bam_extension = int(extendReadsTo)-read_length
         print('For dataset %s using an extension of %s' % (name,bam_extension))
         mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [name],extension=bam_extension,rpm=True)
 
@@ -2929,6 +2934,89 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
     print cmd
     os.system(cmd)
     return cmd
+
+
+
+
+#=======================================================================
+#=======================Plotting TF Motif Corr Heat Maps================
+#=======================================================================
+
+def plotCRCCorrMaps(analysis_name,motifBedDir,tf_list_path='',window=50):
+    list_files=os.listdir(motifBedDir)
+    allLoci=[]
+    motif_beds=[]
+    for f in list_files:
+        fEnd=f.split('.')[-1]
+        if fEnd == 'bed':
+            motif_beds.append(f)
+
+    print(len(motif_beds))
+
+    temp_dir = '%stmp/' % (motifBedDir)
+    figures_dir = '%sfigures/' % (motifBedDir)
+    tables_dir = '%stables/' % (motifBedDir)
+    
+    #making folders
+    folderList = [temp_dir,figures_dir,tables_dir]
+
+    for folder in folderList:
+        formatFolder(folder,True)
+
+    print(tf_list_path)
+    print(len(tf_list_path))
+
+    tf_list=[]
+    if len(tf_list_path)>0:
+        tf_table=utils.parseTable(tf_list_path,'\t')
+        for tf in tf_table:
+            print(tf[0])
+            tf_list.append(tf[0])
+        
+        print(tf_list)
+
+        tf_beds=[]
+        for bed in motif_beds:
+            tf_name=bed.split('_')[0]
+            if tf_name in tf_list:
+                tf_beds.append(bed)
+                print(tf_beds)
+            
+        motif_beds=tf_beds
+
+
+
+    #remove 'track' line from crc bed files and write to tmp file for Rscript use
+    for bed in motif_beds:
+        bed_path = '%s%s' % (motifBedDir,bed)
+        bed_table = utils.parseTable(bed_path,'\t')
+        new_table=[]
+        for line in bed_table[1:]:
+            new_table.append(line)
+        tmp_path = '%s%s' % (temp_dir,bed)
+        if len(new_table) > 0:
+            utils.unParseTable(new_table,tmp_path,'\t')
+
+    for bed in motif_beds:
+        TF_name = bed.split('_')[0]
+        collection = utils.importBoundRegion('%s%s' %(motifBedDir,bed),TF_name)
+
+        allLoci += collection.getLoci()
+
+
+    #make stitched bed file
+    giant_collection = utils.LocusCollection(allLoci,50)
+    stitched_collection = giant_collection.stitchCollection(stitchWindow=50)
+    new_bed = utils.locusCollectionToBed(stitched_collection)
+    utils.unParseTable(new_bed,'%s%s%s_stitched_bed.bed' % (temp_dir,str(window),analysis_name),'\t')
+    utils.unParseTable(new_bed,'%s%s%s_stitched_bed.bed' % (tables_dir,str(window),analysis_name),'\t')
+
+
+    #Call Rscript to create heatmap figures
+
+    cmd='/storage/cylin/anaconda3/envs/r32_py27/bin/Rscript %splotMotifCorrMatrix.R %s %s %s' % (pipelineFolder,motifBedDir,analysis_name,str(window))
+    os.system(cmd)
+
 
 #-------------------------------------------------------------------------#
 #                                                                         #

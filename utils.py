@@ -45,6 +45,7 @@ import time
 import re
 import sys
 import math
+import string
 
 # Very pretty error reporting, where available
 try:
@@ -148,8 +149,10 @@ def parseTable(fn, sep, header = False,excel = False):
     table = []
     if excel:
         lines_raw = fh.readlines()
-        lines = lines_raw[0].split('\r')
-        for line in lines:
+
+        for line in lines_raw:
+            line = string.replace(line,'\r','')
+            line = line.rstrip()
             table.append(line.split(sep))
     else:
         for line in fh:

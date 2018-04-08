@@ -106,11 +106,15 @@ def makeRoseDict(roseFolder):
     analyzes a rose folder to try to find all of the various necessary files
     creates a dictionary with their full paths
     '''
+
+    print(roseFolder)
+
     if not utils.formatFolder(roseFolder,False):
         
         print "Folder %s does not exist" % (roseFolder)
         sys.exit()
 
+    
     roseFolder = utils.formatFolder(roseFolder,False)
     roseFileList = [x for x in os.listdir(roseFolder) if x[0] != '.'] #no hidden files
     if len(roseFileList) == 0:

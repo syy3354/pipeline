@@ -538,7 +538,7 @@ def main():
                     pass
 
                 if gff is None:
-                    print("Your bed doesn't have a valid senese parameter. Defaulting to both strands, '.'")
+                    print("Your bed doesn't have a valid sense parameter. Defaulting to both strands, '.'")
                     # We only take chr/start/stop and ignore everything else.
                     gff = [[e[0], '', args.input, e[1], e[2], '', '.', '', ''] for e in parsed_input_bed]
             else:

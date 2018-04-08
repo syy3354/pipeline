@@ -424,7 +424,7 @@ def main():
         'rn6':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Bowtie2Index/genome',
         'mm10_dm6':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Bowtie2Index_dm6/genome.mm10.dm6',
         'hg19_dm6':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index_dm6/genome.hg19.dm6',
-
+        'hg19_ercc':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Bowtie2Index_ercc/human.hg19_ercc'
         }
 
     bowtieIndex = bowtieDict[string.lower(genome)]
