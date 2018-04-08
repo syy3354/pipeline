@@ -116,12 +116,14 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         'HG19_RIBO': 'annotation/hg19_refseq.ucsc',
         'RN4': 'annotation/rn4_refseq.ucsc',
         'RN6': 'annotation/rn6_refseq.ucsc',
+        'HG38': 'annotation/hg38_refseq.ucsc',
         }
 
     genomeDirectoryDict = {
         'HG19':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
         'RN6':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
         'MM9':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Chromosomes/',
+        'HG38': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg38/Sequence/Chromosomes/',
         }
         
     genomeDirectory = genomeDirectoryDict[string.upper(genome)]
@@ -157,6 +159,8 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
 
     startDict = utils.makeStartDict(annotFile, geneList)
     tssLoci =[]
+    if geneList==[]:
+        geneList = startDict.keys()
     for gene in geneList:
         tssLoci.append(utils.makeTSSLocus(gene,startDict,window,window))
 
@@ -785,7 +789,7 @@ def main():
     parser.add_argument("-i", "--input", dest="input", type=str,
                         help="Enter .gff or .bed file of regions to analyze", required=True)
     parser.add_argument("-g", "--genome", dest="genome", type=str,
-                        help="specify a genome, HG18,HG19,MM8,MM9,MM10,RN6 are currently supported", required=True)
+                        help="specify a genome, HG18,HG19,HG38,MM8,MM9,MM10,RN6 are currently supported", required=True)
     
 
     # output flag
@@ -858,6 +862,7 @@ def main():
 
         if inputPath.split('.')[-1] == 'bed':
             #type is bed
+            print('input in bed format, converting to gff')
             inputGFF = utils.bedToGFF(inputPath)
         else:
             inputGFF = utils.parseTable(inputPath,'\t')
@@ -893,8 +898,8 @@ def main():
         
         #important here to define the window
         startDict,tssCollection,genomeDirectory = loadAnnotFile(genome,window,geneList,True)
-        print(len(startDict))
-
+        #print(tssCollection.getOverlap(utils.Locus('chr5',171387630,171388066,'.')))
+        #sys.exit()
         #=====================================================================================
         #================II. IDENTIFYING TSS PROXIMAL AND DISTAL ELEMENTS=====================
         #=====================================================================================

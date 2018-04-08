@@ -26,7 +26,7 @@ THE SOFTWARE.
 '''
 
 
-#Main method run script for processing of YOUR PROJECT HERE
+#Main method run script for processing of slam seq analysis from Muhar et al., 2018
 
 
 
@@ -59,8 +59,8 @@ import subprocess
 
 
 
-projectName = 'rasmc_new_chips'
-genome ='hg19'
+projectName = 'slam_seq'
+genome ='hg38'
 annotFile = '%s/annotation/%s_refseq.ucsc' % (pipeline_dir,genome)
 
 #project folders
@@ -110,7 +110,7 @@ for folder in folderList:
 #some data tables overlap for ease of analysis
 
 #ChIP-Seq
-data_file = '%sdata_tables/DATA_TABLE.txt' % (projectFolder)
+chip_data_file = '%sdata_tables/HG38_K562_DATA_TABLE.txt' % (projectFolder)
 
 
 
@@ -130,7 +130,7 @@ def main():
 
     print('\n\n')
     print('#======================================================================')
-    print('#======================I, LOADING DATA ANNOTATION======================')
+    print('#======================I. LOADING DATA ANNOTATION======================')
     print('#======================================================================')
     print('\n\n')
 
