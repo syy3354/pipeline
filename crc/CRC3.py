@@ -125,6 +125,12 @@ def loadGenome(genome_build,config_file = ''):
                 'tf_file':'%s/annotation/TFlist_NMid_rn6.txt' % (whereAmI),      
                 'motif_convert':'%s/annotation/MotifDictionary.txt' % (whereAmI),
                 'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
+                },
+        'MM10':{'annot_file':'%sannotation/mm10_refseq.ucsc' % (pipeline_dir),
+                'genome_directory':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Chromosomes/',
+                'tf_file':'%s/annotation/TFlist_NMid_mm10.txt' % (whereAmI),
+                'motif_convert':'%s/annotation/MotifDictionary.txt' % (whereAmI),
+                'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
                 }
 
         }
@@ -180,21 +186,23 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
     motif_table = utils.parseTable(genome.returnFeature('motif_convert'),'\t')
     #this gives all tfs that have a motif
     motif_tfs = utils.uniquify([line[1] for line in motif_table])
+
     #intersect w/ the activity table
     if len(activity_path) > 0:
         activity_table = utils.parseTable(activity_path,'\t')
         #figure out the right column for actual gene names (basically not NM or NR and not a numeral)
         for i in range(len(activity_table[0])):
-            try: 
-                foo = int(activity_table[0][i])
-            except ValueError:
-                continue
-        if activity_table[0][i][0:2] != 'NM' and activity_table[0][i][0:2] != 'NR': #assumes refseq
-            gene_col = i
+           # try: 
+           #     foo = int(activity_table[0][i])
+           # except ValueError: # case where it is not an integer
+            if activity_table[0][i][0:2] != 'NM' and activity_table[0][i][0:2] != 'NR': #assumes refseq
+                gene_col = i
+                break
         print('using column %s of %s gene activity table for common names' % (gene_col + 1, activity_path))
 
-        
+
         active_gene_list = [string.upper(line[gene_col]) for line in activity_table]
+
         tf_list_refseq = [line[0] for line in tf_table if active_gene_list.count(line[1]) > 0 and motif_tfs.count(line[1]) > 0]
         tf_list_name = utils.uniquify([line[1] for line in tf_table if active_gene_list.count(line[1]) > 0 and motif_tfs.count(line[1]) > 0])
     else:
