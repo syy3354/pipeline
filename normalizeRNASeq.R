@@ -547,25 +547,27 @@ for(i in 1:length(groupVector)){
 			abline(v=-1,lty=2)
 			downRows = intersect(which(expMatrix[,3] < -1),which(log10(expMatrix[,4]) < log10(0.05)))
 			upRows = intersect(which(expMatrix[,3] > 1),which(log10(expMatrix[,4]) < log10(0.05)))
-			points(expMatrix[downRows,3],log10(expMatrix[downRows,4]),pch=19,col=rgb(0,0,1,.2),cex=0.8)
-			points(expMatrix[upRows,3],log10(expMatrix[upRows,4]),pch=19,col=rgb(1,0,0,.2),cex=0.8)
-
-			
-			#plot top 10 genes w/ max divergence
+			print('identified number of down and up genes')
+			print(length(downRows))
+			print(length(upRows))
+			#plot up to top 10 genes w/ max divergence
 			#circle
-			downMagnitudeMatrix = makeMagnitudeMatrix(expMatrix[downRows,])
-			upMagnitudeMatrix = makeMagnitudeMatrix(expMatrix[upRows,])
-			
-			if(nrow(downMagnitudeMatrix) > 10){
-				points(downMagnitudeMatrix[1:10,3],log10(downMagnitudeMatrix[1:10,4]),pch=19,col=rgb(0,0,1),cex=1)			
-				for(n in 1:10){
+			if(length(downRows) > 1){
+				points(expMatrix[downRows,3],log10(expMatrix[downRows,4]),pch=19,col=rgb(0,0,1,.2),cex=0.8)
+				downMagnitudeMatrix = makeMagnitudeMatrix(expMatrix[downRows,])
+				mag_points = min(10,nrow(downMagnitudeMatrix))
+				points(downMagnitudeMatrix[1:mag_points,3],log10(downMagnitudeMatrix[1:mag_points,4]),pch=19,col=rgb(0,0,1),cex=1)			
+				for(n in 1:mag_points){
 				text(downMagnitudeMatrix[n,3],log10(downMagnitudeMatrix[n,4]),rownames(downMagnitudeMatrix)[n],pos=2,col='blue')
 				}
 			}
-
-			if(nrow(upMagnitudeMatrix) > 10){
-				points(upMagnitudeMatrix[1:10,3],log10(upMagnitudeMatrix[1:10,4]),pch=19,col=rgb(1,0,0),cex=1)
-				for(n in 1:10){
+			
+			if(length(upRows) > 1){
+				points(expMatrix[upRows,3],log10(expMatrix[upRows,4]),pch=19,col=rgb(1,0,0,.2),cex=0.8)
+				upMagnitudeMatrix = makeMagnitudeMatrix(expMatrix[upRows,])
+				mag_points = min(10,nrow(upMagnitudeMatrix))
+				points(upMagnitudeMatrix[1:mag_points,3],log10(upMagnitudeMatrix[1:mag_points,4]),pch=19,col=rgb(1,0,0),cex=1)
+				for(n in 1:mag_points){
 				text(upMagnitudeMatrix[n,3],log10(upMagnitudeMatrix[n,4]),rownames(upMagnitudeMatrix)[n],pos=4,col='red')
 				}								
 			}
