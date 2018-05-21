@@ -2971,7 +2971,7 @@ def plotCRCCorrMaps(analysis_name,motifBedDir,tf_list_path='',window=50):
         tf_table=utils.parseTable(tf_list_path,'\t')
         for tf in tf_table:
             print(tf[0])
-            tf_list.append(tf[0])
+            tf_list.append(tf[0].upper())
         
         print(tf_list)
 
@@ -3645,7 +3645,7 @@ def mapHisat(dataFile,namesList=[],projectFolder='',useSRA=False,pCount=16,Launc
 
 
 
-def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
+def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = '',useERCC = True):
 
     '''
     call cuffquant on each bam individually
@@ -3724,7 +3724,7 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
     cuffquantList = [] # create a list to store cuffquant .cxb outputs so we can check for completeness
     for name in namesList:
         bamFileName = dataDict[name]['bam']
-        bashFile.write('cuffquant -p 4 -o %s%s/ %s %s &\n' % (cufflinksFolder,name,gtfFile,bamFileName))
+        bashFile.write('cuffquant -p 4 -o %s%s/ %s %s --library-type fr-firststrand\n' % (cufflinksFolder,name,gtfFile,bamFileName))
         cuffquantList.append('%s%s/abundances.cxb' % (cufflinksFolder,name))
 
 
@@ -3758,7 +3758,7 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
     bashFile.write("\necho 'running cuffnorm command'\n")
 
     
-    cuffNormCmd = 'cuffnorm -p 4 -o %s%s_cuffnorm/ -L %s %s %s\n' % (cufflinksFolder,analysisName,namesString,gtfFile,cxbString)
+    cuffNormCmd = 'cuffnorm -p 4 -o %s%s_cuffnorm/ -L %s %s %s --library-type fr-firststrand\n' % (cufflinksFolder,analysisName,namesString,gtfFile,cxbString)
 
     bashFile.write(cuffNormCmd + '\n')
 
@@ -3767,9 +3767,10 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
     geneFPKMFile = '%s%s_cuffnorm/genes.fpkm_table' % (cufflinksFolder,analysisName)
 
 
-    
-    rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s TRUE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
-
+    if useERCC:
+        rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s TRUE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
+    else:
+        rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s FALSE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
     bashFile.write(rCmd)
     bashFile.close()
 

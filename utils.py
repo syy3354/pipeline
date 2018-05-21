@@ -1203,6 +1203,9 @@ class Bam:
 
         self._read_lengths = uniquify([len(line.split('\t')[9]) for line in read_statLines if len(line) >0])
 
+    def path(self):
+        return self._bam
+
     def getTotalReads(self,readType = 'mapped'):
         if readType == 'mapped':
             return self._mapped_reads

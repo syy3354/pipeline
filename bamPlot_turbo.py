@@ -88,6 +88,8 @@ def loadAnnotFile(genome, skip_cache=False):
         'RN4': 'annotation/rn4_refseq.ucsc',
         'rn6': 'annotation/rn6_refseq.ucsc',
         'RN6': 'annotation/rn6_refseq.ucsc',
+        'hg38':'annotation/hg38_refseq.ucsc',
+        'HG38':'annotation/hg38_refseq.ucsc',
 
         }
 
@@ -584,7 +586,7 @@ def main():
 
         # bring in the genome
         genome = args.genome.upper()
-        if ['HG18', 'HG19', 'HG19_RIBO','MM9', 'MM10', 'RN4','RN6'].count(genome) == 0:
+        if ['HG18', 'HG19', 'HG19_RIBO','HG38','MM9', 'MM10', 'RN4','RN6'].count(genome) == 0:
             print('ERROR: UNSUPPORTED GENOME TYPE %s. USE HG19,HG18, RN4, MM9, or MM10' % (genome))
             parser.print_help()
             exit()
