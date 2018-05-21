@@ -734,9 +734,9 @@ def detectGSEAOutput(analysisName,outputFolder,top,analysis_type ='enhancer_vs_p
     print(class2TablePath)
     #now check em
     if utils.checkOutput(class1TablePath,0.5,30):
-        print('FOUND %s OUTPUT AT %s' % (class1,class1TablePath))
+        print('FOUND %s OUTPUT AT %s' % (class_1,class1TablePath))
         if utils.checkOutput(class2TablePath,0.5,30):
-            print('FOUND %s OUTPUT AT %s' % (class2,class2TablePath))
+            print('FOUND %s OUTPUT AT %s' % (class_2,class2TablePath))
             return class1TablePath,class2TablePath
     else:
         print('ERROR: UNABLE TO FIND GSEA OUTPUT')
