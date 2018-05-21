@@ -116,7 +116,7 @@ def makeFileNameDict(fastqFile,genome,tempString,tempParentFolder,finalFolder,li
     tempBamFile = tempFolder + fastqName + '.bam'
     fileNameDict['tempBamFile'] = tempBamFile
 
-    tempSortedBamFile = tempFolder + fastqName + '.%s.bwt2.sorted' % (genome)
+    tempSortedBamFile = tempFolder + fastqName + '.%s.bwt2.sorted.bam' % (genome)
     fileNameDict['tempSortedBamFile'] = tempSortedBamFile
 
     sortedSamFile = fastqName + '.%s.bwt2.sorted.sam' % (genome)
@@ -279,7 +279,7 @@ def sortBamCmd(samtoolsString,fileNameDict):
     tempBamFile = fileNameDict['tempBamFile']
     tempSortedBamFile = fileNameDict['tempSortedBamFile']
 
-    cmd = "%s sort '%s' '%s'" % (samtoolsString,tempBamFile,tempSortedBamFile)
+    cmd = "%s sort -o '%s' '%s'" % (samtoolsString,tempSortedBamFile,tempBamFile)
     return cmd
 
 
@@ -291,7 +291,7 @@ def indexBamCmd(samtoolsString,fileNameDict):
     '''
 
     tempSortedBamFile=fileNameDict['tempSortedBamFile']
-    cmd = "%s index '%s.bam'" % (samtoolsString,tempSortedBamFile)
+    cmd = "%s index '%s'" % (samtoolsString,tempSortedBamFile)
 
     return cmd
 
