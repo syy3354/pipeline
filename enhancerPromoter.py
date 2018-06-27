@@ -123,11 +123,25 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         'HG19':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
         'RN6':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
         'MM9':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Chromosomes/',
+        'MM10':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Chromosomes/',
         'HG38': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg38/Sequence/Chromosomes/',
         }
-        
+
+    mouse_convert_file = '%s/annotation/HMD_HumanPhenotype.rpt' % (whereAmI)
+
+    #making a dictionary for mouse to human conversion
+    mouse_convert_dict = defaultdict(str)
+    
+    mouse_convert_table = utils.parseTable(mouse_convert_file,'\t')
+    for line in mouse_convert_table:
+        mouse_convert_dict[line[4]] = line[0]
+            
     genomeDirectory = genomeDirectoryDict[string.upper(genome)]
 
+
+    #making a chrom_dict that is a list of all chroms with sequence
+    chrom_list = utils.uniquify([name.split('.')[0] for name in os.listdir(genomeDirectory) if len(name) >0])
+    
     annotFile = whereAmI + '/' + genomeDict[string.upper(genome)]
 
 
@@ -171,7 +185,7 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         with open(cache_file_path, 'wb') as cache_fh:
             cPickle.dump((startDict, tssCollection), cache_fh, cPickle.HIGHEST_PROTOCOL)
 
-    return startDict, tssCollection, genomeDirectory
+    return startDict, tssCollection, genomeDirectory, chrom_list, mouse_convert_dict
 
 
 
@@ -621,7 +635,7 @@ def callRWaterfall(geneTablePath,outputFolder,analysisName,top):
     os.system('bash %s' % (rBashFilePath))
 
     #now check for the .cls output
-    clsPath = '%s%s_top_%s.cls' % (outputFolder,analysisName,top)
+    clsPath = '%s%s_top_all.cls' % (outputFolder,analysisName)
 
     if utils.checkOutput(clsPath,0.5,5):
         return 
@@ -630,7 +644,7 @@ def callRWaterfall(geneTablePath,outputFolder,analysisName,top):
         sys.exit()
 
 
-def callGSEA(outputFolder,analysisName,top,analysis_type ='enhancer_vs_promoter'):
+def callGSEA(outputFolder,analysisName,top,analysis_type ='enhancer_vs_promoter',use_top=True):
 
     '''
     runs C2 GSEA
@@ -671,16 +685,17 @@ def callGSEA(outputFolder,analysisName,top,analysis_type ='enhancer_vs_promoter'
     gseaBashFile.write(gseaCmd_all)
     gseaBashFile.write('\n')
 
-    #for top N
-    gctPath = '%s%s_top_%s%s.gct' % (outputFolder,analysisName,top,suffix)
-    clsPath = '%s%s_top_%s%s.cls' % (outputFolder,analysisName,top,suffix)
-    gseaOutputFolder = utils.formatFolder('%sgsea_top_%s_c2%s' % (outputFolder,top,suffix),True)
-    rptLabel = '%s_top_%s%s' % (analysisName,top,suffix)
+    if use_top:
+        #for top N
+        gctPath = '%s%s_top_%s%s.gct' % (outputFolder,analysisName,top,suffix)
+        clsPath = '%s%s_top_%s%s.cls' % (outputFolder,analysisName,top,suffix)
+        gseaOutputFolder = utils.formatFolder('%sgsea_top_%s_c2%s' % (outputFolder,top,suffix),True)
+        rptLabel = '%s_top_%s%s' % (analysisName,top,suffix)
 
-    gseaCmd_top = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s%s -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,analysis_dict[analysis_type][1],gmxPath,rptLabel,gseaOutputFolder)
+        gseaCmd_top = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s%s -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,analysis_dict[analysis_type][1],gmxPath,rptLabel,gseaOutputFolder)
 
-    gseaBashFile.write(gseaCmd_top)
-    gseaBashFile.write('\n')
+        gseaBashFile.write(gseaCmd_top)
+        gseaBashFile.write('\n')
 
     gseaBashFile.close()
     os.system('bash %s' % (gseaBashFilePath))
@@ -837,7 +852,7 @@ def main():
 
 
         #input genome
-        genome = args.genome
+        genome = args.genome.upper()
         print('PERFORMING ANALYSIS ON %s GENOME BUILD' % (genome))
         
         #set of bams
@@ -866,6 +881,7 @@ def main():
             inputGFF = utils.bedToGFF(inputPath)
         else:
             inputGFF = utils.parseTable(inputPath,'\t')
+
         
         #the tss window
         window = int(args.window)
@@ -882,6 +898,7 @@ def main():
 
             geneList = [line[ref_col] for line in activityTable] # this needs to be REFSEQ NM ID
             print('IDENTIFIED %s ACTIVE GENES' % (len(geneList)))
+
         else:
             geneList = []
 
@@ -897,9 +914,18 @@ def main():
         print('LOADING ANNOTATION DATA FOR GENOME %s' % (genome))
         
         #important here to define the window
-        startDict,tssCollection,genomeDirectory = loadAnnotFile(genome,window,geneList,True)
+        startDict,tssCollection,genomeDirectory,chrom_list,mouse_convert_dict = loadAnnotFile(genome,window,geneList,True)
         #print(tssCollection.getOverlap(utils.Locus('chr5',171387630,171388066,'.')))
         #sys.exit()
+
+        print('FILTERING THE INPUT GFF FOR GOOD CHROMOSOMES')
+        
+
+        print(chrom_list)
+        filtered_gff = [line for line in inputGFF if chrom_list.count(line[0]) > 0]
+        
+        print('%s of INITIAL %s REGIONS ARE IN GOOD CHROMOSOMES' % (len(filtered_gff),len(inputGFF)))
+
         #=====================================================================================
         #================II. IDENTIFYING TSS PROXIMAL AND DISTAL ELEMENTS=====================
         #=====================================================================================
@@ -909,8 +935,8 @@ def main():
 
         #now we need to split the input region 
         print('SPLITTING THE INPUT GFF USING A WINDOW OF %s' % (window))
-        splitGFF = splitRegions(inputGFF,tssCollection)
-        print(len(inputGFF))
+        splitGFF = splitRegions(filtered_gff,tssCollection)
+        print(len(filtered_gff))
         print(len(splitGFF))
 
         splitGFFPath = '%s%s_SPLIT.gff' % (outputFolder,analysisName)
@@ -955,12 +981,35 @@ def main():
         geneTablePath = '%s%s_GENE_TABLE.txt' % (outputFolder,analysisName)
         utils.unParseTable(geneTable,geneTablePath,'\t')
 
+        #if mouse, need to convert genes over
+        if genome.count('MM') ==1:
+            print('CONVERTING MOUSE NAMES TO HUMAN HOMOLOGS FOR GSEA')
+            converted_geneTablePath = '%s%s_GENE_TABLE_CONVERTED.txt' % (outputFolder,analysisName)
+        
+            converted_geneTable = [geneTable[0]]
+            for line in geneTable[1:]:
+                converted_name = mouse_convert_dict[line[0]]
+                if len(converted_name) >0:
+                    converted_geneTable.append([converted_name] + line[1:])
+
+                    utils.unParseTable(converted_geneTable,converted_geneTablePath,'\t')
+
+            geneTablePath = converted_geneTablePath
+            geneTable = converted_geneTable
+
         #=====================================================================================
         #===================================III. PLOTTING ====================================
         #=====================================================================================
 
         print('\n\n#======================================\n#===III. PLOTTING ENHANCER/PROMOTER===\n#======================================\n')
 
+        #if there are fewer genes in the gene table than the top genes, only run on all
+        if len(geneTable)  < int(top):
+            print('WARNING: ONLY %s GENES WITH SIGNAL AT EITHER PROMOTERS OR ENHANCERS. NOT ENOUGH TO RUN ANALYSIS ON TOP %s' % (len(geneTable)-1,top))
+            top = 0
+            use_top =False
+        else:
+            use_top =True
 
         #now call the R code
         print('CALLING R PLOTTING SCRIPTS')
@@ -975,17 +1024,18 @@ def main():
 
         #now let's call gsea
         print('RUNNING GSEA ON C2')
-        callGSEA(outputFolder,analysisName,top,'enhancer_vs_promoter')       
-        callGSEA(outputFolder,analysisName,top,'total_contribution')        
+        callGSEA(outputFolder,analysisName,top,'enhancer_vs_promoter',use_top)       
+        callGSEA(outputFolder,analysisName,top,'total_contribution',use_top)        
         
-        print('DETECTING GSEA OUTPUT FOR TOP %s GENES' % (top))
-        #for top by enhancer v promoter metric 
-        top_promoterTablePath,top_distalTablePath = detectGSEAOutput(analysisName,outputFolder,top,'enhancer_vs_promoter')
-        top_signalTablePath,top_backgroundTablePath = detectGSEAOutput(analysisName,outputFolder,top,'total_contribution')
+        if use_top:
+            print('DETECTING GSEA OUTPUT FOR TOP %s GENES' % (top))
+            #for top by enhancer v promoter metric 
+            top_promoterTablePath,top_distalTablePath = detectGSEAOutput(analysisName,outputFolder,top,'enhancer_vs_promoter')
+            top_signalTablePath,top_backgroundTablePath = detectGSEAOutput(analysisName,outputFolder,top,'total_contribution')
 
-        print('MAKING NES PLOTS FOR TOP %s GENES' % (top))
-        callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName+'_enhancer_vs_promoter',top)
-        callR_GSEA(top_signalTablePath,top_backgroundTablePath,outputFolder,analysisName+'_total_contribution',top)
+            print('MAKING NES PLOTS FOR TOP %s GENES' % (top))
+            callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName+'_enhancer_vs_promoter',top)
+            callR_GSEA(top_signalTablePath,top_backgroundTablePath,outputFolder,analysisName+'_total_contribution',top)
 
 
         print('DETECTING GSEA OUTPUT FOR ALL GENES')
@@ -993,7 +1043,7 @@ def main():
         all_promoterTablePath,all_distalTablePath = detectGSEAOutput(analysisName,outputFolder,'all')
 
         print('MAKING NES PLOTS FOR ALL GENES')
-        callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,'all')
+        callR_GSEA(all_promoterTablePath,all_distalTablePath,outputFolder,analysisName,'all')
 
 
         #these files can be parsed to make the NES plot

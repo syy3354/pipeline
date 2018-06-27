@@ -251,6 +251,8 @@ runWaterfall <- function(geneTable,analysisName,outputFolder,top=0,geneList = c(
 	clsTable[2,2]='DISTAL'
 	clsTable[3,1]='PROMOTER'
 	clsTable[3,2]='DISTAL'
+	print('WRITING .cls OUTPUT TO:')
+	print(filename_cls)
 	write.table(clsTable,file=filename_cls,quote=FALSE,sep='\t',row.names=FALSE,col.names=FALSE)		
 
 
@@ -342,5 +344,7 @@ runWaterfall(geneTable,analysisName,outputFolder)
 
 
 #top N
+print('working on top genes')
+print(top)
 plotContribution(geneTable,analysisName,outputFolder,as.numeric(top)) 
 runWaterfall(geneTable,analysisName,outputFolder,as.numeric(top))
