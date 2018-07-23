@@ -361,7 +361,7 @@ def mapEnhancerToGeneTop(rankByBamFile, controlBamFile, genome, annotFile, enhan
 
     # next make the gene to enhancer table
     geneToEnhancerTable = [
-        ['GENE_NAME', 'REFSEQ_ID', 'PROXIMAL_ENHANCERS', 'ENHANCER_RANKS', 'IS_SUPER', 'ENHANCER_SIGNAL']]
+        ['GENE_NAME', 'REFSEQ_ID', 'PROXIMAL_ENHANCERS', 'ENHANCER_RANKS', 'IS_SUPER', 'TSS_SIGNAL']]
 
     for line in enhancerTable:
         if line[0][0] == '#' or line[0][0] == 'R':
