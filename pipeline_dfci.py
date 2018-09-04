@@ -293,6 +293,15 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #def makeTrackHub(analysis_name,project_folder,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False)
 
 
+
+#-------------------------------------------------------------------------#
+#                                                                         #
+#                              GSEA TOOLS                                 #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+#def wrapGSEA(gctPath,clsPath,sample_1,sample_2,analysis_name,output_folder,metric,gmxPath='',gseaPath='',launch=True)
+
 #============================================================================================================
 #============================================================================================================
 #============================================================================================================
@@ -5556,6 +5565,58 @@ def makeTrackHub(analysis_name,project_folder,chrom_sizes, dataFileList=[], wigg
 
 
 
-    
+#==========================================================================
+#===============================GSEA ANALYSIS==============================
+#==========================================================================
+def wrapGSEA(gctPath,clsPath,sample_1,sample_2,analysis_name,output_folder,metric,gmxPath='',gseaPath='',launch=True):
+    '''
+    wraps GSEA, creates bash script, and sets up output folder
+    Metrics:
+        - metric possibilities include Signal2Noise, tTest, Ratio_of_Classes, Diff_of_Classes, log2_Ratio_of_Classes
+        - tTest metric requires multiple columns to work
+    .gct and .cls files are generated via the normalizeRNAseq.R script in the pipeline, but they can easily be generated.
+        GCT files:
+          http://software.broadinstitute.org/cancer/software/genepattern/file-formats-guide#GCT
+        CLS files:
+          http://software.broadinstitute.org/cancer/software/genepattern/file-formats-guide#CLS
+    Gene sets and .gmt files can be generated manually to inspect specific gene sets. The default is a curated gene set of all human genes.
+        GMT files:
+          http://software.broadinstitute.org/cancer/software/genepattern/file-formats-guide#GMT
+
+    IF YOU GET A STRANGE ERROR, MAKE SURE THE GENES IN YOUR GCT FILE ARE CAPITALIZED.
+    '''
+    if gmxPath='':
+        #default curated gene set
+        gmxPath='/storage/cylin/grail/annotations/gsea/c2.all.v5.1.symbols.gmt'
+    if gseaPath='':
+        #default gsea version
+        gseaPath = '/storage/cylin/home/cl6/gsea2-3.0_beta_2.jar'
+
+    #create and open bash file  
+    gseaBashFilePath = cls_path = '{}{}_gsea.sh'.format(output_folder,analysis_name)
+    gseaBashFile = open(gseaBashFilePath,'w')
+
+    #shebang
+    gseaBashFile.write('#!/usr/bin/bash\n\n')
+
+    gseaBashFile.write('#COMMAND LINE GSEA CALLS FOR {}\n\n'.format(analysis_name))
+
+    #point where the analysis will live
+    gseaOutputFolder = utils.formatFolder('{}{}_GSEA/'.format(output_folder,analysis_name),True)
+
+    #name report
+    rptLabel = '{}'.format(analysis_name)
+
+    #generate GSEA command
+    gseaCmd_all = 'java -Xmx4000m -cp {} xtools.gsea.Gsea -res {} -cls {}#{}_versus_{} -gmx {} -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label {} -metric {} -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 50 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out {} -gui false'.format(gseaPath,gctPath,clsPath,sample_1,sample_2,gmxPath,rptLabel,metric,gseaOutputFolder)
+
+    #write command
+    gseaBashFile.write(gseaCmd_all)
+    gseaBashFile.close()
+    print('writing GSEA output to {}'.format(gseaBashFilePath))
+    return gseaBashFilePath
+    ##if you want to auto run
+    if launch == True:
+        os.system('bash {}'.format(gseaBashFilePath))    
 
 
