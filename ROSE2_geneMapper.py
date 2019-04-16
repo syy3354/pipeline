@@ -80,7 +80,15 @@ def mapEnhancerToGene(annotFile,enhancerFile,transcribedFile='',uniqueGenes=True
 
     if len(transcribedFile) > 0:
         transcribedTable = utils.parseTable(transcribedFile,'\t')
-        transcribedGenes = [line[1] for line in transcribedTable]
+        #figure out which column has refseq identifiers
+        line = transcribedTable[0]
+        ref_col = 0
+        if len(line) > 1:
+            for i in range(len(line)):
+
+                if line[i].count('NM_') >0 or line[i].count('NR_') >0:
+                    ref_col = i
+        transcribedGenes = [line[ref_col] for line in transcribedTable]
     else:
         transcribedGenes = startDict.keys()
 
