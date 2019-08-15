@@ -890,11 +890,17 @@ def main():
         if args.activity:
             activityPath = args.activity
             activityTable = utils.parseTable(activityPath,'\t')
-            
+            ref_col = 0
             #try to find the column for refseq id
-            for i in range(len(activityTable[0])):
-                if str(activityTable[0][i]).count('NM_') > 0 or str(activityTable[0][i]).count('NR_') >0:
+            for i in range(len(activityTable[2])): #use an internal row in case of header
+                if str(activityTable[1][i]).count('NM_') > 0 or str(activityTable[1][i]).count('NR_') >0:
                     ref_col = i
+            
+            #now check for header
+            if str(activityTable[0][i]).count('NM_') == 0 and str(activityTable[0][i]).count('NR_') ==0:
+                print('REMOVING HEADER FROM GENE TABLE:')
+                print(activityTable[0])
+                activityTable.pop(0)
 
             geneList = [line[ref_col] for line in activityTable] # this needs to be REFSEQ NM ID
             print('IDENTIFIED %s ACTIVE GENES' % (len(geneList)))

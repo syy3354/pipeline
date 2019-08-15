@@ -54,7 +54,7 @@ try:
 except ImportError:
     pass
 
-from string import join, maketrans
+from string import join,maketrans
 
 import subprocess
 import datetime
@@ -342,7 +342,7 @@ def getParentFolder(inputFile):
     returns the parent folder for any file
     '''
 
-    parentFolder = join(inputFile.split('/')[:-1],'/') +'/'
+    parentFolder = '/'.join(inputFile.split('/')[:-1]) +'/'
     if parentFolder =='':
         return './'
     else:
@@ -756,9 +756,10 @@ class Locus:
                 phastBases += lineLen
 
         if phastBases > self.len():
-            print "this locus is sad %s. please debug me" % (self.__str__())
-            print "locus length is %s" % (self.len())
-            print "phastBases are %s" % (phastBases)
+            print(self)
+            print("this locus is sad %s. please debug me" % (self.__str__()))
+            print("locus length is %s" % (self.len()))
+            print("phastBases are %s" % (phastBases))
 
 
         return phastSum/self.len()
@@ -1491,7 +1492,7 @@ def gffToFasta(genome,directory,gff,UCSC = True,useID=False):
         if useID:
             name = '>' + line[1]
         else:
-            name = '>'+ join([genome.lower(),line[0],str(line[3]),str(line[4]),line[6]],'|')
+            name = '>'+ '|'.join([genome.lower(),line[0],str(line[3]),str(line[4]),line[6]])
         fastaList.append(name)
         if line[6] == '-':
             #print(line[3])

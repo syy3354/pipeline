@@ -650,7 +650,7 @@ for(i in 1:length(groupVector)){
 		filename_gct= paste(outputFolder,name,'_',group1,'_vs_',group2,'.gct',sep='')
 		gctMatrix =matrix(ncol=4,nrow=nrow(expMatrix))
 		colnames(gctMatrix) = c('NAME','DESCRIPTION',group1,group2)
-		gctMatrix[,1]= rownames(expMatrix)
+		gctMatrix[,1]= toupper(rownames(expMatrix))
 		gctMatrix[,3]= expMatrix[,1]
 		gctMatrix[,4]=expMatrix[,2]
 		

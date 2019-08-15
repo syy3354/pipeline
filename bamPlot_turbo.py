@@ -387,11 +387,11 @@ def makeBamPlotTables(gff, genome, bamFileList, colorList, nBins, sense, extensi
     for i,bamFile in enumerate(bamFileList):
         # millionMappedReads
         idxCmd = 'samtools idxstats %s' % (bamFile)
+
         idxPipe = subprocess.Popen(idxCmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
         idxStats = idxPipe.communicate()
         idxStats = idxStats[0].split('\n')
         idxStats = [line.split('\t') for line in idxStats]
-
         rawCount = sum([int(line[2]) for line in idxStats[:-1]])
 
         #implement scaling
@@ -404,6 +404,8 @@ def makeBamPlotTables(gff, genome, bamFileList, colorList, nBins, sense, extensi
         else:
             MMR = round(1/float(readScaleFactor),4)
         mmrDict[bamFile] = MMR
+
+
 
     ticker = 1
     # go line by line in the gff
@@ -484,6 +486,9 @@ def main():
                         help="Choose either all lines on a single plot or multiple plots. options = 'SINGLE,MULTIPLE,MERGE'")
     parser.add_argument("-t", "--title", dest="title", default='',
                         help="Specify a title for the output plot(s), default will be the coordinate region")
+    parser.add_argument("-q", "--skip-cache", dest="skip_cache",action='store_true',default=False,
+                        help="Toggles option to skip loading annotation cache file")
+
 
     # DEBUG OPTION TO SAVE TEMP FILES
     parser.add_argument("--scale", dest="scale", default='',

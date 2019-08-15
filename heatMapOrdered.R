@@ -75,8 +75,8 @@ colorSpectrum <- colorRampPalette(c("white",color))(100)
 minValue <- quantile(referenceData,na.rm=TRUE,prob=0.6,names=FALSE)
 print('min value is')
 print(minValue)
-#maxValue <- quantile(referenceData,na.rm=TRUE,prob=0.95,names=FALSE)
-maxValue = 3
+maxValue <- quantile(referenceData,na.rm=TRUE,prob=0.95,names=FALSE)
+#maxValue = 3
 print('max value is')
 print(maxValue)
 color_cuts <- seq(minValue,maxValue,length=100)

@@ -918,7 +918,6 @@ def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,
         #get the unique ID
         uniqueID = dataDict[name]['uniqueID']
 
-
         outputFolder = dataDict[name]['folder']
         outputFolder = formatFolder(outputFolder,create=True)
 
@@ -930,6 +929,7 @@ def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,
             foo = open(dataDict[name]['bam'],'r')
             if not overwrite:
                 print('BAM file already exists for %s. OVERWRITE = FALSE' % (name))
+                run = False
                 pass
             else:
                 run = True
@@ -939,7 +939,7 @@ def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,
 
         if run:
 
-            cmd = "python %s/callBowtie2Slurm.py -f %s -g %s -u %s -o %s --link-folder %s" % (whereAmI,fastqFile,genome,uniqueID,outputFolder,linkFolder)
+            cmd = "python2 %s/callBowtie2Slurm.py -f %s -g %s -u %s -o %s --link-folder %s" % (whereAmI,fastqFile,genome,uniqueID,outputFolder,linkFolder)
 
             #add the param string
             cmd += " --param '%s'" % (paramString)
@@ -2287,13 +2287,14 @@ def mapEnrichedToGFF(dataFile,setName,gffList,cellTypeList,enrichedFolder,mapped
         if len(namesList) == 0:
             namesList = dataDict.keys()
         for name in namesList:
-
             #check to make sure in the right celltype
             #also make sure to not process WCEs
             if useBackground and dataDict[name]['background'] == 'NONE':
                 continue
             cellName = name.split('_')[0]
             if macs == True:
+                print(name)
+                print(dataDict[name]['enrichedMacs'])
                 if cellTypeList.count(cellName) == 1 and dataDict[name]['enrichedMacs'] != 'NONE':
                     cellTypeNameList.append(name)
 
@@ -2400,7 +2401,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                 if rpm:
                     cmd1 += ' -r'
                 #cmd1 += ' &'
-                print cmd1
+                print(cmd1)
                 os.system(cmd1)
 
             else:
@@ -2413,7 +2414,7 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                         cmd1 += ' -r'
                     #cmd1 += ' &'
 
-                    print cmd1
+                    print(cmd1)
                     os.system(cmd1)
 
 
@@ -2768,7 +2769,7 @@ def makeGFFListFile(mappedEnrichedFile,setList,output,annotFile=''):
             
             bindingVector = [int(line[x]) for x in andColumns]
             if refID == "NM_133941":
-                print bindingVector
+                print(bindingVector)
             #print(bindingVector)
             if bindingVector.count(1) == len(bindingVector):
                 if len(annotFile) >0 :
@@ -2868,7 +2869,7 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
 
     genomeList = [string.lower(dataDict[x]['genome']) for x in namesList]
     if len(uniquify(genomeList)) != 1:
-        print "ERROR: CANNOT PLOT DATA FROM MULTIPLE GENOMES"
+        print("ERROR: CANNOT PLOT DATA FROM MULTIPLE GENOMES")
         sys.exit()
     else:
         genome = genomeList[0]
@@ -2882,7 +2883,7 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
         foo = open(inputFile,'r')
         foo.close()
     except IOError:
-        print "ERROR: INPUT FILE NOT READABLE"
+        print("ERROR: INPUT FILE NOT READABLE")
         sys.exit()
 
     #establish the output folder
@@ -2940,7 +2941,7 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
         cmd += ' --save-temp'
     #cmd += ' &'
 
-    print cmd
+    print(cmd)
     os.system(cmd)
     return cmd
 
@@ -3321,11 +3322,13 @@ def callRose(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = []
 
 
 
-def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask='',useBackground=True):
+def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask='',useBackground=True,py27_path =''):
 
     '''
     calls rose w/ standard parameters
     '''
+    if py27_path =='':
+        py27_path = 'python'
 
     dataDict = loadDataTable(dataFile)
     if len(namesList) == 0:
@@ -3366,7 +3369,7 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
         outputFolder = "%s%s_ROSE" % (parentFolder,name)
         print(name)
         bashFile.write('#running ROSE2 on %s\n' % (name))
-        roseCmd = 'python ROSE2_main.py -g %s -i %s -r %s -o %s -t %s' % (genome,macsFile,bamFile,outputFolder,tss)
+        roseCmd = '%s ROSE2_main.py -g %s -i %s -r %s -o %s -t %s' % (py27_path,genome,macsFile,bamFile,outputFolder,tss)
 
         if len(str(stitch)) > 0:
             roseCmd += ' -s %s' % (stitch)
@@ -5585,10 +5588,10 @@ def wrapGSEA(gctPath,clsPath,sample_1,sample_2,analysis_name,output_folder,metri
 
     IF YOU GET A STRANGE ERROR, MAKE SURE THE GENES IN YOUR GCT FILE ARE CAPITALIZED.
     '''
-    if gmxPath='':
+    if gmxPath=='':
         #default curated gene set
         gmxPath='/storage/cylin/grail/annotations/gsea/c2.all.v5.1.symbols.gmt'
-    if gseaPath='':
+    if gseaPath=='':
         #default gsea version
         gseaPath = '/storage/cylin/home/cl6/gsea2-3.0_beta_2.jar'
 
