@@ -38,17 +38,22 @@ backgroundGFF = args[12]
 
 
 #getting the reference order and color spectrum
-referenceData <- read.delim(file=referenceGFF,sep="\t",header=TRUE)
-
+print("Getting reference data")
+print(referenceGFF)
+referenceData = read.delim(file=referenceGFF,sep="\t",header=TRUE)
 
 if(nchar(geneListFile) > 5){
 geneListTable = read.delim(geneListFile,header=FALSE)
 geneList = as.vector(geneListTable[,1])}else{geneList = as.vector(seq(1,nrow(referenceData),1))}
 
 #loading mappedGFF
+print("Loading mapped data")
+print(mappedGFF)
 mappedData <- read.delim(file=mappedGFF,sep="\t",header=TRUE)
 mappedData <- as.matrix(mappedData[geneList,3:ncol(mappedData)])  #remove GENE_ID  & locusLine and force to matrix
 colnames(mappedData) <- NULL
+
+
 
 #performing background correction
 if(backgroundGFF != 'NONE' | nchar(backgroundGFF) > 5){
