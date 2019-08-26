@@ -104,7 +104,7 @@ paramDict = {'cpgPath': '/storage/cylin/grail/projects/mycn_resub/mycn/beds/hg19
 #================================================================================
 
 
-def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
+def loadAnnotFile(genome,tss_window,geneList=[],skip_cache=False):
     """
     load in the annotation and create a startDict and tss collection for a set of refseq IDs a given genome
     """
@@ -176,7 +176,7 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
     if geneList==[]:
         geneList = startDict.keys()
     for gene in geneList:
-        tssLoci.append(utils.makeTSSLocus(gene,startDict,window,window))
+        tssLoci.append(utils.makeTSSLocus(gene,startDict,tss_window,tss_window))
 
     tssCollection = utils.LocusCollection(tssLoci,50)
 
@@ -368,7 +368,7 @@ def makeAverageTable(outputFolder,analysisName,useBackground = False):
 
 
 
-def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path=''):
+def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tss_window,distal_window,tads_path=''):
     
     '''
     makes the final peak table with ebox info
@@ -394,15 +394,15 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
     if len(geneList) == 0:
         geneList = startDict.keys()
 
-    tss_1kb_loci = []
-    tss_50kb_loci = []
+    tss_prox_loci = []
+    tss_distal_loci = []
     for refID in geneList:
-        tss_1kb_loci.append(utils.makeTSSLocus(refID,startDict,1000,1000))
-        tss_50kb_loci.append(utils.makeTSSLocus(refID,startDict,50000,50000))
+        tss_prox_loci.append(utils.makeTSSLocus(refID,startDict,tss_window,tss_window))
+        tss_distal_loci.append(utils.makeTSSLocus(refID,startDict,distal_window,distal_window))
 
     #make a 1kb flanking and 50kb flanking collection
-    tss_1kb_collection = utils.LocusCollection(tss_1kb_loci,50)
-    tss_50kb_collection = utils.LocusCollection(tss_50kb_loci,50)
+    tss_prox_collection = utils.LocusCollection(tss_prox_loci,50)
+    tss_distal_collection = utils.LocusCollection(tss_distal_loci,50)
 
     if len(tads_path) > 0:
         print('LOADING TADS FROM %s' % (tads_path))
@@ -411,7 +411,7 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
         
         #building a tad dict keyed by tad ID w/ genes in that tad provided
         tad_dict = defaultdict(list)
-        for tss_locus in tss_1kb_loci:
+        for tss_locus in tss_prox_loci:
             overlapping_tads = tad_collection.getOverlap(tss_locus,'both')
             for tad_locus in overlapping_tads:
                 tad_dict[tad_locus.ID()].append(tss_locus.ID())
@@ -494,7 +494,7 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
             newLine += [canonCount,otherCount,totalCount]
 
         #now find the overlapping and proximal genes
-        #here each overlapping gene the tss 1kb locus overlaps the peak
+        #here each overlapping gene the tss prox locus overlaps the peak
 
         if use_tads:
 
@@ -514,8 +514,8 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
 
 
         if len(tad_genes) >0:
-            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_1kb_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]
-            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_50kb_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]        
+            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_prox_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]
+            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_distal_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]        
             # print('linked peak to tad genes')
             # print([startDict[x]['name'] for x in tad_genes])
             # print(tad_id_list)
@@ -523,8 +523,8 @@ def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,gen
             # print(overlappingGenes)
             # print(proximalGenes)
         else:
-            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_1kb_collection.getOverlap(lineLocus,'both')]
-            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_50kb_collection.getOverlap(lineLocus,'both')]        
+            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_prox_collection.getOverlap(lineLocus,'both')]
+            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_distal_collection.getOverlap(lineLocus,'both')]        
 
         overlappingGenes = utils.uniquify(overlappingGenes) 
         #here the tss 50kb locus overlaps the peak 
@@ -565,7 +565,7 @@ def makeGeneTable(peakTable,analysisName):
         signal = float(line[9]) * regionLength
 
 
-        #genes where this particular peak overlaps the tss 1kb window
+        #genes where this particular peak overlaps the tss prox window
         #where there are both overlap and proximal meet
         if len(line) == 15:
             overlapGeneList = [gene for gene in line[-2].split(',') if len(gene) > 0]
@@ -818,19 +818,27 @@ def main():
 
     parser.add_argument("-c", "--control", dest="control", nargs='*',
                         help="Enter a space separated list of .bam files for background. If flagged, will perform background subtraction", required=False)
-    parser.add_argument("-w", "--window", dest="window",type=int,
-                        help="Enter a window to define the TSS area +/- the TSS. Default is 1kb", required=False, default=1000)
+    parser.add_argument("-t", "--tss", dest="tss",type=int,
+                        help="Define the TSS area +/- the TSS. Default is 1kb", required=False, default=1000)
+    parser.add_argument("-d", "--distal", dest="distal",type=int,
+                        help="Enter a window to assign distal enhancer signal. Default is 50kb", required=False, default=50000)
+
+
+
+
+
     parser.add_argument("--other-bams", dest="other", nargs='*',
                         help="enter a space separated list of other bams to map to", required=False)
 
     parser.add_argument("--name", dest="name", type=str,
                         help="enter a root name for the analysis, otherwise will try to find the name from the input file", required=False)
 
-
     parser.add_argument("--top", dest="top", type=int,
                         help="Run the analysis on the top N genes by total signal. Default is 5000", required=False,default=5000)
     parser.add_argument("--tads", dest="tads", type=str,
                         help="Include a .bed of tad regions to restrict enhancer/gene association", required=False,default=None)
+
+
 
 
 
@@ -883,8 +891,11 @@ def main():
             inputGFF = utils.parseTable(inputPath,'\t')
 
         
-        #the tss window
-        window = int(args.window)
+        #the tss window for proximal signal assignment
+        tss_window = int(args.tss)
+
+        #the distal window for assigning nearby enhancer signal
+        distal_window = int(args.distal)
 
         #activity path
         if args.activity:
@@ -920,7 +931,7 @@ def main():
         print('LOADING ANNOTATION DATA FOR GENOME %s' % (genome))
         
         #important here to define the window
-        startDict,tssCollection,genomeDirectory,chrom_list,mouse_convert_dict = loadAnnotFile(genome,window,geneList,True)
+        startDict,tssCollection,genomeDirectory,chrom_list,mouse_convert_dict = loadAnnotFile(genome,tss_window,geneList,True)
         #print(tssCollection.getOverlap(utils.Locus('chr5',171387630,171388066,'.')))
         #sys.exit()
 
@@ -940,7 +951,7 @@ def main():
 
 
         #now we need to split the input region 
-        print('SPLITTING THE INPUT GFF USING A WINDOW OF %s' % (window))
+        print('SPLITTING THE INPUT GFF USING A WINDOW OF %s' % (tss_window))
         splitGFF = splitRegions(filtered_gff,tssCollection)
         print(len(filtered_gff))
         print(len(splitGFF))
@@ -979,7 +990,7 @@ def main():
             print('PEAK TABLE OUTPUT ALREADY EXISTS')
             peakTable = utils.parseTable(peakTablePath,'\t')
         else:
-            peakTable = makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path)        
+            peakTable = makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tss_window,distal_window,tads_path)        
             utils.unParseTable(peakTable,peakTablePath,'\t')
 
         geneTable = makeGeneTable(peakTable,analysisName)        
