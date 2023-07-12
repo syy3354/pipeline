@@ -101,7 +101,7 @@ paramDict = {'cpgPath': '/storage/cylin/grail/projects/mycn_resub/mycn/beds/hg19
 #================================================================================
 
 
-def loadAnnotFile(genome,tss_window,geneList=[],skip_cache=False):
+def loadAnnotFile(genome,genomeDirectory,tss_window,geneList=[],skip_cache=False):
     """
     load in the annotation and create a startDict and tss collection for a set of refseq IDs a given genome
     20170213, add by Quanhu Sheng
@@ -118,14 +118,6 @@ def loadAnnotFile(genome,tss_window,geneList=[],skip_cache=False):
         'HG38': 'annotation/hg38_refseq.ucsc',
         }
 
-    genomeDirectoryDict = {
-        'HG19':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
-        'RN6':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
-        'MM9':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Chromosomes/',
-        'MM10':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Chromosomes/',
-        'HG38': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg38/Sequence/Chromosomes/',
-        }
-
     mouse_convert_file = '%s/annotation/HMD_HumanPhenotype.rpt' % (whereAmI)
 
     #making a dictionary for mouse to human conversion
@@ -135,9 +127,6 @@ def loadAnnotFile(genome,tss_window,geneList=[],skip_cache=False):
     for line in mouse_convert_table:
         mouse_convert_dict[line[4]] = line[0]
             
-    genomeDirectory = genomeDirectoryDict[string.upper(genome)]
-
-
     #making a chrom_dict that is a list of all chroms with sequence
     chrom_list = utils.uniquify([name.split('.')[0] for name in os.listdir(genomeDirectory) if len(name) >0])
     
@@ -950,7 +939,7 @@ def main():
         
         #Quanhu Sheng, assign valid_genes to geneList, 20230712
         #important here to define the window
-        startDict,tssCollection,genomeDirectory,chrom_list,mouse_convert_dict,geneList = loadAnnotFile(genome,tss_window,geneList,True)
+        startDict,tssCollection,genomeDirectory,chrom_list,mouse_convert_dict,geneList = loadAnnotFile(genome,genomeDirectory,tss_window,geneList,True)
         #print(tssCollection.getOverlap(utils.Locus('chr5',171387630,171388066,'.')))
         #sys.exit()
 
