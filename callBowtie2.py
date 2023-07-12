@@ -42,8 +42,8 @@ import utils
 #command arguments
 bowtieString = 'bowtie2'
 samtoolsString = 'samtools'
-tempParentFolder = '/raider/BOWTIE_TEMP/'
-fastqcString = '/usr/local/FastQC/fastqc'
+tempParentFolder = '/storage/cylin/grail/BOWTIE_TEMP/'
+fastqcString = '/storage/cylin/usr/local/FastQC/fastqc'
 fastqDelimiter = '::'
 
 #tempParentFolder = '/mnt/d0-0/share/bradnerlab/projects/anna/BOWTIE_TEMP/'

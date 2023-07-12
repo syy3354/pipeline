@@ -39,13 +39,13 @@
 #===================================================================
 
 args <- commandArgs()
-print(args[3:6])
+print(args)
 
 
-genome = args[3]
-outputFolder = args[4]
-analysisName = args[5]
-enhancerFile = args[6]
+genome = args[6]
+outputFolder = args[7]
+analysisName = args[8]
+enhancerFile = args[9]
 
 
 
@@ -276,7 +276,7 @@ plot(as.dendrogram(sampleHC),ylab='Distance')
 par(mar=c(4,2,2,0))
 
 plot(as.dendrogram(seHC),horiz=TRUE,xlab='Distance',leaflab='none')
-par(mar=c(6,2,4,2))
+par(mar=c(6,5,4,2))
 
 image(1:ncol(enhancerMatrix),1:nrow(enhancerMatrix),t(enhancerMatrix[seOrder,sampleOrder]),breaks=color_cuts,col=colorSpectrum,xaxt="n",yaxt="n",ylab='',xlab='')
 
@@ -350,5 +350,4 @@ image(1:2,color_cuts[2:101],t(matrix(data=color_cuts[2:101],ncol=2,nrow=100)),br
 
 
 dev.off()
-
 

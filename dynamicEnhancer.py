@@ -47,7 +47,7 @@ print "Using python version %s" % sys.version
     
 
 #importing utils package
-sys.path.append('/home/chazlin/pipeline/')
+sys.path.append('/storage/cylin/home/cl6/pipeline/')
 import utils
 import pipeline_dfci
 import os
@@ -61,7 +61,7 @@ import numpy
 
 #add locations of files and global parameters in this section
 
-pipelineDir = '/home/chazlin/pipeline/'
+pipelineDir = '/storage/cylin/home/cl6/pipeline/'
 
 
 #dataFile = '/ark/home/cl512/projects/athero/EC_TABLE_FINAL.txt'
@@ -106,11 +106,15 @@ def makeRoseDict(roseFolder):
     analyzes a rose folder to try to find all of the various necessary files
     creates a dictionary with their full paths
     '''
+
+    print(roseFolder)
+
     if not utils.formatFolder(roseFolder,False):
         
         print "Folder %s does not exist" % (roseFolder)
         sys.exit()
 
+    
     roseFolder = utils.formatFolder(roseFolder,False)
     roseFileList = [x for x in os.listdir(roseFolder) if x[0] != '.'] #no hidden files
     if len(roseFileList) == 0:
@@ -266,7 +270,7 @@ def mergeCollections(superFile1,superFile2,name1,name2,output=''):
 
 #call rose on the mergies
 
-def callRoseMerged(dataFile,mergedGFFFile,name1,name2,parentFolder):
+def callRoseMerged(dataFile,mergedGFFFile,name1,name2,parentFolder,python_path):
 
     '''
     makes a rose call for the merged supers
@@ -294,10 +298,10 @@ def callRoseMerged(dataFile,mergedGFFFile,name1,name2,parentFolder):
         extraMap = [name2]
 
 
-    return pipeline_dfci.callRose2(dataFile,'',parentFolder,namesList,extraMap,mergedGFFFile,tss=0,stitch=0)
+    return pipeline_dfci.callRose2(dataFile,'',parentFolder,namesList,extraMap,mergedGFFFile,tss=0,stitch=0,py27_path = python_path)
 
 
-def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder):
+def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder,python_path):
 
     '''
     this is the main run function for the script
@@ -320,7 +324,7 @@ def callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,
         #call rose on the merged shit    
 
 
-        roseBashFile = callRoseMerged(dataFile,mergedGFF,name1,name2,parentFolder)
+        roseBashFile = callRoseMerged(dataFile,mergedGFF,name1,name2,parentFolder,python_path)
         print('i can has rose bash file %s' % (roseBashFile))
 
         #run the bash command
@@ -363,7 +367,7 @@ def callDeltaRScript(mergedGFFFile,parentFolder,dataFile,name1,name2,allFile1,al
     #print(stitchedFile)
     os.chdir(pipelineDir)
 
-    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_plot.R" % (stitchedFile,name1,name2,median1,median2)
+    rcmd = "Rscript %sdynamicEnhancer_plot.R %s %s %s %s %s" % (pipelineDir,stitchedFile,name1,name2,median1,median2)
 
     return rcmd
 
@@ -382,14 +386,14 @@ def callRankRScript(enhancerRankFile,name1,name2,superFile1,superFile2):
 
 
     os.chdir(pipelineDir)
-    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_rank.R" % (enhancerRankFile,name1,name2,nSuper1,nSuper2)
+    rcmd = "Rscript %sdynamicEnhancer_rank.R %s %s %s %s %s" % (pipelineDir,enhancerRankFile,name1,name2,nSuper1,nSuper2)
 
     return rcmd
 
 
 
 
-def callRoseGeneMapper(mergedGFFFile,genome,parentFolder,name1):
+def callRoseGeneMapper(mergedGFFFile,genome,parentFolder,name1,python_path):
 
     '''
     calls the rose gene mapper w/ 100kb window
@@ -400,7 +404,7 @@ def callRoseGeneMapper(mergedGFFFile,genome,parentFolder,name1):
     deltaFile = stitchedFile.replace('REGION_MAP','DELTA')
     
     os.chdir(pipelineDir)
-    cmd = 'python ROSE2_geneMapper.py -g %s -i %s -w 100000' % (genome,deltaFile)
+    cmd = '%s ROSE2_geneMapper.py -g %s -i %s -w 100000' % (python_path,genome,deltaFile)
     os.system(cmd)
     print(cmd)
     
@@ -680,16 +684,22 @@ def main():
                       help = "If flagged, will use median enhancer scaling")
     parser.add_option("-e","--enhancer-type", dest="enhancer_type",nargs = 1,default='super',
                       help = "specify type of enhancer to analyze: super, stretch, superStretch")
+    parser.add_option("--python-path", dest="python_path",nargs = 1,default='',
+                      help = "Optional: specify the python path")
 
     (options,args) = parser.parse_args()
 
     print(options)
     print(args)
     
+
     if options.genome and options.data and options.rose and options.output and options.names:
         genome = string.upper(options.genome)
         dataFile = options.data
-
+        if options.python_path =='':
+            python_path = 'python'
+        else:
+            python_path = options.python_path
         roseFolderString = options.rose
         [roseFolder1,roseFolder2] = roseFolderString.split(',')
         parentFolder = utils.formatFolder(options.output,True)
@@ -747,11 +757,11 @@ def main():
             if len(superFile2) == 0:
                 print "ERROR: UNABLE TO FIND %s FILES IN %s" % (enhancerCallType,roseFolder2)
                 sys.exit()
-            roseOutput = callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder)
+            roseOutput = callMergeSupers(dataFile,superFile1,superFile2,name1,name2,mergeName,genome,parentFolder,python_path)
 
         else:
 
-            roseOutput = callMergeSupers(dataFile,allFile1,allFile2,name1,name2,mergeName,genome,parentFolder)
+            roseOutput = callMergeSupers(dataFile,allFile1,allFile2,name1,name2,mergeName,genome,parentFolder,python_path)
 
 
 
@@ -764,7 +774,7 @@ def main():
         os.system(rcmd)
 
         time.sleep(30)
-        callRoseGeneMapper(mergedGFFFile,genome,parentFolder,name1)
+        callRoseGeneMapper(mergedGFFFile,genome,parentFolder,name1,python_path)
 
         #rank the genes
 

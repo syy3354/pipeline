@@ -27,19 +27,19 @@ library(graphics)
 
 args <- commandArgs()
 
-print(args[3:7])
+print(args)
 
 
-nameTable = read.delim(args[3],header=FALSE)
-diagramTable = read.delim(args[4],header=FALSE)
-plotTable = read.delim(args[5])
-yScale = args[6]
-plotStyle = args[7]
-fileName = args[8]
+nameTable = read.delim(args[6],header=FALSE)
+diagramTable = read.delim(args[7],header=FALSE)
+plotTable = read.delim(args[8])
+yScale = args[9]
+plotStyle = args[10]
+fileName = args[11]
 
 plotHeight = (nrow(plotTable)+1)*3
 
-nameFile = unlist(strsplit(args[3],'/'))
+nameFile = unlist(strsplit(args[6],'/'))
 outFolder = paste(as.vector(nameFile[2:(length(nameFile)-1)]),collapse='/')
 inputName = nameFile[length(nameFile)]
 start = unlist(strsplit(inputName,'_'))[3]

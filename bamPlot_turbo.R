@@ -28,13 +28,13 @@ library(graphics)
 args <- commandArgs()
 
 
-print(args[3:6])
+print(args)
 
-summaryFile = args[3]
-outFile = args[4]
-yScale = args[5]
-plotStyle = args[6]
-multiPage = args[7]
+summaryFile = args[6]
+outFile = args[7]
+yScale = args[8]
+plotStyle = args[9]
+multiPage = args[10]
 #==========================================================
 #==================DEBUG SECTION===========================
 #==========================================================

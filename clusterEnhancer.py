@@ -41,14 +41,25 @@ can perform initial enhancer mapping or draw from a set of finished rose outputs
 #==========================================================================
 
 
+
 import sys
-sys.path.append('/home/chazlin/pipeline/')
+import os
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+
+pipelineFolder = '%s/' % (whereAmI) # need to set this to where this code is stored
+
+sys.path.append(pipelineFolder)
+
+
 
 import pipeline_dfci
 import utils
 import string
 import numpy
 import os
+
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+pipeline_dir = whereAmI + '/'
 
 
 #==========================================================================
@@ -92,7 +103,9 @@ def makeNameDict(dataFile,roseFolder,namesList=[],enhancerType='super'):
     dataDict = pipeline_dfci.loadDataTable(dataFile)
     
     #draw the parent folder from the dataFile
-    parentFolder = utils.getParentFolder(dataFile)
+    parentFolder = utils.formatFolder(utils.getParentFolder(dataFile),False)
+    if parentFolder.count('data_tables') == 1:
+        parentFolder = parentFolder.replace('data_tables/','')
     print "Using %s as the parent folder" % (parentFolder)
 
     #check to see if a rose folder exists already
@@ -197,7 +210,7 @@ def launchEnhancerMapping(dataFile,nameDict,outputFolder,roseFolder,stitch,tssDi
             print "CALLING ROSE FOR %s" % (name)
             bashFileName = pipeline_dfci.callRose2(dataFile,'',roseOutputFolder,[name],[],enrichedFile,tssDistance,stitch,mask=maskFile)
             print bashFileName
-            os.system('bash %s &' % (bashFileName))
+            os.system('bash %s' % (bashFileName))
             #add name to queue list
             queueList.append(name)
 
@@ -468,7 +481,7 @@ def callRScript(genome,outputFolder,analysisName,signalTableFile):
             
     clusterTable = "%s%s_%s_clusterTable.txt" % (outputFolder,genome,analysisName)
 
-    rCmd = 'R --no-save %s %s %s %s < /home/chazlin/pipeline/clusterEnhancer.R' % (genome,outputFolder,analysisName,signalTableFile)
+    rCmd = 'Rscript %sclusterEnhancer.R %s %s %s %s' % (pipeline_dir,genome,outputFolder,analysisName,signalTableFile)
     print("Calling command %s" % rCmd)
 
     os.system(rCmd)
@@ -675,8 +688,8 @@ def main():
         #=============GENE MAPPING BY CLUSTER=================
         #=====================================================
 
-        os.chdir('/home/chazlin/pipeline/')
-        cmd = 'python /home/chazlin/pipeline/ROSE2_geneMapper.py -g %s -i %s' % (genome,clusterTableFile)
+        os.chdir(pipelineFolder)
+        cmd = 'python %sROSE2_geneMapper.py -g %s -i %s' % (pipelineFolder,genome,clusterTableFile)
         os.system(cmd)
 
         print "FINISHED"

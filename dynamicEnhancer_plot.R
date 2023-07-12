@@ -46,11 +46,11 @@ args <- commandArgs()
 
 print(args[3:7])
 
-stitchedFile = args[3]
-name1 = args[4]
-name2 = args[5]
-median1 = as.numeric(args[6])
-median2 = as.numeric(args[7])
+stitchedFile = args[6]
+name1 = args[7]
+name2 = args[8]
+median1 = as.numeric(args[9])
+median2 = as.numeric(args[10])
 
 #===========================================================
 #=================MAKING DELTA TABLE========================

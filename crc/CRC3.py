@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ######################
 #
 # Core Regulatory Circuits
@@ -18,10 +20,16 @@ import sys
 import string
 
 whereAmI = os.path.dirname(os.path.realpath(__file__))
-pipeline_dir = '%s/' % (string.replace(whereAmI,'crc/','')) # need to set this to where this code is stored
+print(whereAmI)
+pipeline_dir = '/'.join(whereAmI.split('/')[0:-2]) + '/pipeline/'
+print(pipeline_dir)
+
 sys.path.append(pipeline_dir)
 
 import utils
+
+
+
 
 import numpy
 import scipy
@@ -93,7 +101,7 @@ class Genome:
 #================================================================================
 
 
-def loadGenome(genome_build):
+def loadGenome(genome_build,config_file = ''):
 
     '''
     loads annotation for a genome into a genome object
@@ -102,27 +110,44 @@ def loadGenome(genome_build):
     #this nested dictionary has all of the useful information and likely will have to be
     #edited so it can be configured any time
     genome_build = string.upper(genome_build)
+
+        
     genomeDict = {
         'HG19':{'annot_file':'%sannotation/hg19_refseq.ucsc' % (pipeline_dir),
-                'genome_directory':'/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
-                'tf_file':'%sannotation/TFlist_NMid_hg19.txt' % (whereAmI),     
-                'mask_file':'/%sgenomes/Homo_sapiens/UCSC/hg19/Annotation/Masks/hg19_encode_blacklist.bed',
-                'motif_convert':'%sannotation/MotifDictionary.txt' % (whereAmI),
-                #'motif_convert':'/grail/projects/medullo_final/bordo/MotifDictionary_NRL.txt',
-                'motif_database':'%sannotation/VertebratePWMs.txt' % (whereAmI),
+                'genome_directory':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
+                'tf_file':'%s/annotation/TFlist_NMid_hg19.txt' % (whereAmI),     
+                'mask_file':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Annotation/Masks/hg19_encode_blacklist.bed',
+                'motif_convert':'%s/annotation/MotifDictionary.txt' % (whereAmI),
+                'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
                 },
         'RN6':{'annot_file':'%sannotation/rn6_refseq.ucsc' % (pipeline_dir),
-                'genome_directory':'%sgenomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/' % (pipeline_dir),
-                'tf_file':'%sannotation/TFlist_NMid_rn6.txt' % (whereAmI),      
-                'motif_convert':'%sannotation/MotifDictionary.txt' % (whereAmI),
-                'motif_database':'%sannotation/VertebratePWMs.txt' % (whereAmI),
+                'genome_directory':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
+                'tf_file':'%s/annotation/TFlist_NMid_rn6.txt' % (whereAmI),      
+                'motif_convert':'%s/annotation/MotifDictionary.txt' % (whereAmI),
+                'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
+                },
+        'MM10':{'annot_file':'%sannotation/mm10_refseq.ucsc' % (pipeline_dir),
+                'genome_directory':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Chromosomes/',
+                'tf_file':'%s/annotation/TFlist_NMid_mm10.txt' % (whereAmI),
+                'motif_convert':'%s/annotation/MotifDictionary.txt' % (whereAmI),
+                'motif_database':'%s/annotation/VertebratePWMs.txt' % (whereAmI),
                 }
 
         }
+
+    #allow an optional config file to overwrite default paths
+    if len(config_file) >0:
+        config_table = utils.parseTable(config_file,'\t')
+        for line in config_table[1:]:
+            (build,field,feature_path) = line[0].split(':')
+            genomeDict[string.upper(build)][string.lower(field)] = feature_path
     
     if genome_build not in genomeDict:
         print('ERROR: UNSUPPORTED GENOME BUILD %s. EXITING NOW' % (genome_build))
         sys.exit()
+    else:
+        print('USING BUILD %s WITH FOLLOWING FIELDS:' % (genome_build))
+        print(genomeDict[genome_build])
 
     #now attempt to load the genome
     genome = Genome(genome_build,genomeDict[genome_build]['genome_directory'],genomeDict[genome_build]['annot_file'])
@@ -161,10 +186,23 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
     motif_table = utils.parseTable(genome.returnFeature('motif_convert'),'\t')
     #this gives all tfs that have a motif
     motif_tfs = utils.uniquify([line[1] for line in motif_table])
+
     #intersect w/ the activity table
     if len(activity_path) > 0:
         activity_table = utils.parseTable(activity_path,'\t')
-        active_gene_list = [string.upper(line[0]) for line in activity_table]
+        #figure out the right column for actual gene names (basically not NM or NR and not a numeral)
+        for i in range(len(activity_table[0])):
+           # try: 
+           #     foo = int(activity_table[0][i])
+           # except ValueError: # case where it is not an integer
+            if activity_table[0][i][0:2] != 'NM' and activity_table[0][i][0:2] != 'NR': #assumes refseq
+                gene_col = i
+                break
+        print('using column %s of %s gene activity table for common names' % (gene_col + 1, activity_path))
+
+
+        active_gene_list = [string.upper(line[gene_col]) for line in activity_table]
+
         tf_list_refseq = [line[0] for line in tf_table if active_gene_list.count(line[1]) > 0 and motif_tfs.count(line[1]) > 0]
         tf_list_name = utils.uniquify([line[1] for line in tf_table if active_gene_list.count(line[1]) > 0 and motif_tfs.count(line[1]) > 0])
     else:
@@ -196,7 +234,6 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
     closest_index = header.index('CLOSEST_GENE')
     proximal_index = header.index('PROXIMAL_GENES')
     overlap_index = header.index('OVERLAP_GENES')
-
     for line in enhancer_table[1:]:
         if len(line) != header_length: #don't bother trying to figure out lines w/o target genes
             continue
@@ -206,8 +243,13 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
         overlap_gene_list = line[overlap_index].split(',')
         all_gene_list = closest_gene_list + proximal_gene_list + overlap_gene_list
         all_gene_list = [string.upper(gene) for gene in all_gene_list]
-
+        
+        #print(all_gene_list)
+        
+        #print(activity_path)
+        #print(active_gene_list)
         #gets a unique list of all tfs
+        
         if len(activity_path) > 0:
             all_gene_list = utils.uniquify([gene for gene in all_gene_list if active_gene_list.count(gene) > 0])
         else:
@@ -226,9 +268,11 @@ def geneToEnhancerDict(genome, enhancer_file, activity_path):
         if len(candidate_gene_list) > 0:
             tfLine = line[0:4] + [','.join(candidate_gene_list)]
             enhancerTFTable.append(tfLine)
+    
 
-    #now iterate through each gee and list the enhancers
+    #now iterate through each gene and list the enhancers
     gene_list = gene_to_enhancer_dict.keys()
+    print(gene_list)
     gene_list.sort()
     for gene in gene_list:
         if tf_list_name.count(gene) > 0:
@@ -454,6 +498,7 @@ def generateSubpeakFASTA(gene_to_enhancer_dict, subpeaks, genome, projectName, p
     subpeakLoci = [utils.Locus(l[0], int(l[1]), int(l[2]), '.') for l in subpeakTable]
     subpeakCollection = utils.LocusCollection(subpeakLoci, 50)
 
+
     for gene in gene_to_enhancer_dict.keys():
         subpeakDict[gene] = []
         for region in gene_to_enhancer_dict[gene]:
@@ -465,6 +510,7 @@ def generateSubpeakFASTA(gene_to_enhancer_dict, subpeaks, genome, projectName, p
             for overlap in overlapCollection.getLoci():
                 subpeakBED.append([overlap.chr(), overlap.start(), overlap.end()])
                 subpeakDict[gene].append(overlap)
+
 
     fasta = []
 
@@ -515,6 +561,8 @@ def findMotifs(subpeakFasta,bg_path,candidate_tf_list, projectFolder, analysis_n
         motifDatabaseDict[line[1]].append(line[0])
 
     candidate_tf_list.sort()
+    
+    print(candidate_tf_list)
 
     #now make a list of all motifs
     motif_list = []
@@ -580,17 +628,28 @@ def collapseFimo(fimo_output,gene_to_enhancer_dict,candidate_tf_list,output_fold
         
 
     fimoTable = utils.parseTable(fimo_output,'\t')
+    print(fimo_output)
+
+    #fimo sometimes puts the region in either the first or second column
+    fimo_line = fimoTable[1]
+    if fimo_line[1].count('|') >0:
+        region_index = 1
+    else:
+        region_index = 2
+    print('USING COLUMN %s OF FIMO OUTPUT FOR REGION' % (region_index))
 
     for line in fimoTable[1:]:
         source_tfs = motifDatabaseDict[line[0]]   #motifId
         for source in source_tfs:
             if candidate_tf_list.count(source) == 0:
                 continue
-            region = line[1].split('|')
+            region = line[region_index].split('|')
 
             target = region[0]
-            target_locus = utils.Locus(region[1],int(region[2]) + int(line[2]), int(region[2]) + int(line[3]),'.')
-        
+            if region_index == 2:
+                target_locus = utils.Locus(region[1],int(region[2]) + int(line[3]), int(region[2]) + int(line[4]),'.')
+            else:
+                target_locus = utils.Locus(region[1],int(region[2]) + int(line[2]), int(region[2]) + int(line[3]),'.')
             #what's missing here is the enhancer id of the target locus
             try:
                 edgeDict[source][target].append(target_locus)
@@ -697,11 +756,26 @@ def formatNetworkOutput(graph, output_folder, analysis_name, candidate_tf_list):
 
     # output the adjacency list and nodelist
     nodeFile = output_folder + analysis_name + '_NODELIST.txt'
-    nodeList = [ [n] for n in graph.nodes_iter()]
+    if nx.__version__[0] == '1':
+        nodeList = [ [n] for n in graph.nodes_iter()]
+    elif nx.__version__[0] == '2':
+        nodeList = [[n] for n in graph.nodes()]
+    else:
+        print('ERROR: UNSUPPORTED VERSION OF NETWORKX MODULE')
+        sys.exit()
     utils.unParseTable(nodeList, nodeFile, '\t')
 
     adjFile = output_folder + analysis_name + '_ADJ_LIST.txt'
-    adjList = graph.adjacency_list()
+    
+    if nx.__version__[0] == '1':
+        adjList = graph.adjacency_list()
+    elif nx.__version__[0] == '2':
+        adjList = [n[1].keys() for n in graph.adjacency()]
+    else:
+        print('ERROR: UNSUPPORTED VERSION OF NETWORKX MODULE')
+        sys.exit()
+
+    
     utils.unParseTable(adjList, adjFile, '\t')
 
     edgesTable = [['From', 'To']]
@@ -882,7 +956,7 @@ def main():
     parser.add_argument("-a","--activity",dest="activity", default = None,type=str,
                         help = "A table with active gene names in the first column",required=False)
     parser.add_argument("-l","--extension-length", dest="extension", default=100,type=int,
-                        help = "Enter the length to extend subpeak regions for motif finding",required=False)
+                        help = "Enter the length to extend subpeak regions for motif finding. default is 100",required=False)
     parser.add_argument("-B","--background", dest="background", default=None,type=str,
                         help = "Provide a background BAM file",required=False)
     parser.add_argument("-N", "--number", dest="number", default=1,type=int,
@@ -891,6 +965,9 @@ def main():
                         help = "Enter additional PWM file for the analysis",required=False)
     parser.add_argument("-t","--tfs", dest="tfs",default=None,type=str,
                         help = "Enter additional TFs (comma separated) to be used in the bindinf analysis",required=False)
+    parser.add_argument("--config", dest="config",default='',type=str,
+                        help = "Enter genome configuration file to overwrite default paths",required=False)
+
 
     args = parser.parse_args()
 
@@ -907,7 +984,7 @@ def main():
     # Define all global file names
     ###
     print(args)
-    genome = loadGenome(args.genome)
+    genome = loadGenome(args.genome,args.config)
 
     motifDatabaseFile = genome.returnFeature('motif_database')
     motifConvertFile = genome.returnFeature('motif_convert')
@@ -940,6 +1017,7 @@ def main():
 
 
     #output folder and analysis name
+    print(args.output)
     output_folder = utils.formatFolder(args.output,True)
     analysis_name = args.name
 
@@ -1011,8 +1089,8 @@ def main():
 
 
     #first make the subpeak bed and subpeak fasta for the tfs
-    all_sub_bed,all_fasta = generateSubpeakFASTA(gene_to_enhancer_dict, all_bed_path, genome, analysis_name,output_folder, constExtension)
 
+    all_sub_bed,all_fasta = generateSubpeakFASTA(gene_to_enhancer_dict, all_bed_path, genome, analysis_name,output_folder, constExtension)
     if subpeakFile == None:
         #this is the case where we did valleys #only reason you would need to output the sub bed
         all_sub_out = '%s%s_all_subpeak.bed' % (output_folder,analysis_name)
@@ -1039,12 +1117,11 @@ def main():
 
     edgeDict = collapseFimo(fimo_out,gene_to_enhancer_dict,candidate_tf_list,output_folder,analysis_name,motifConvertFile)
 
-
     #=====================================================================================
     #============================V. RUNNING NETWORK ANALYSIS==============================
     #=====================================================================================
 
-    print('\n\n#======================================\n#========V. BUILDING NETWORK============\n#======================================\n')
+    print('\n\n#======================================\n#========V. BUILDING NETWORK===========\n#======================================\n')
 
 
     print('building graph and edge table')
@@ -1053,7 +1130,7 @@ def main():
     formatNetworkOutput(graph, output_folder, analysis_name, candidate_tf_list)
 
         
-    print('yay')
+    print('FINISHED RUNNING CRC FOR %s' % (analysis_name))
 
     sys.exit()
 

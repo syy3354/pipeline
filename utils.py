@@ -45,6 +45,7 @@ import time
 import re
 import sys
 import math
+import string
 
 # Very pretty error reporting, where available
 try:
@@ -53,7 +54,7 @@ try:
 except ImportError:
     pass
 
-from string import join, maketrans
+from string import join,maketrans
 
 import subprocess
 import datetime
@@ -134,13 +135,29 @@ def open(fileName,mode='r'):
 #table = parseTable('file.txt','\t')
 def parseTable(fn, sep, header = False,excel = False):
     fh = open(fn)
+
+    line = fh.readline()
+    if line.count('\r') >0:
+        excel =True
+    fh.close()
+    fh = open(fn)
     if header == True:
         header = fh.readline() #disposes of the header
+    
+    #first figure out if this table came from excel and has \r for line breaks
 
     table = []
-    for line in fh:
-        line = line.rstrip().split(sep)
-        table.append(line)
+    if excel:
+        lines_raw = fh.readlines()
+
+        for line in lines_raw:
+            line = string.replace(line,'\r','')
+            line = line.rstrip()
+            table.append(line.split(sep))
+    else:
+        for line in fh:
+            line = line.rstrip().split(sep)
+            table.append(line)
 
     fh.close()
 
@@ -208,12 +225,30 @@ def bedToGFF(bed, output=''):
 
     gff = []
 
+    #determine if this is a long bed or a short bed
+
+    print(len(bed[0]))
+    print(bed[0])
+
+    if len(bed[0]) == 6: # this is a full format bed
+        bed_style = 'long'
+    elif len(bed[0]) == 5: # this is the medium  length bed with strand
+        bed_style = 'medium'
+    elif len(bed[0]) == 3: # this is the minimum length bed
+        bed_style = 'short'
+    else:
+        print('this is probably not actually a bed')
+        print(bed[0])
+        print('exiting now because the bed is sad')
+        sys.exit()
+    print('this bed has %s columns and is a %s bed' % (len(bed[0]),bed_style))
     for line in bed:
-        try:
+        if bed_style == 'long':
             gffLine = [line[0],line[3],'',line[1],line[2],line[4],line[5],'',line[3]]
-        except IndexError:
-            print(line)
-            sys.exit()
+        if bed_style == 'medium':
+            gffLine = [line[0],'','',line[1],line[2],'',line[4],'','']
+        if bed_style == 'short':
+            gffLine = [line[0],'','',line[1],line[2],'','.','','']
         gff.append(gffLine)
 
 
@@ -233,7 +268,8 @@ def gffToBed(gff,output= ''):
     '''
     bed = []
     for line in gff:
-        newLine = [line[0],line[3],line[4],line[1],0,line[6]]
+        coords = [int(line[3]),int(line[4])]
+        newLine = [line[0],min(coords),max(coords),line[1],0,line[6]]
         bed.append(newLine)
     if len(output) == 0:
         return bed
@@ -306,7 +342,7 @@ def getParentFolder(inputFile):
     returns the parent folder for any file
     '''
 
-    parentFolder = join(inputFile.split('/')[:-1],'/') +'/'
+    parentFolder = '/'.join(inputFile.split('/')[:-1]) +'/'
     if parentFolder =='':
         return './'
     else:
@@ -720,9 +756,10 @@ class Locus:
                 phastBases += lineLen
 
         if phastBases > self.len():
-            print "this locus is sad %s. please debug me" % (self.__str__())
-            print "locus length is %s" % (self.len())
-            print "phastBases are %s" % (phastBases)
+            print(self)
+            print("this locus is sad %s. please debug me" % (self.__str__()))
+            print("locus length is %s" % (self.len()))
+            print("phastBases are %s" % (phastBases))
 
 
         return phastSum/self.len()
@@ -1145,6 +1182,7 @@ class Bam:
 
         #get the number of reads use idxstats instead of flagstat
         command = '%s idxstats %s' % (samtoolsString,self._bam)
+
         stats = subprocess.Popen(command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
         statLines = stats.stdout.readlines()
         stats.stdout.close()
@@ -1153,11 +1191,21 @@ class Bam:
         self._total_reads = self._mapped_reads + int(statLines[-1].rstrip().split('\t')[-1])
 
         #now get the readlength #check the first 1000 reads
-        view_command = '%s view %s chr1:1-10000000' % (samtoolsString,self._bam)
+        view_command = '%s view %s chr1:90000000-100000000' % (samtoolsString,self._bam)
         read_stats = subprocess.Popen(view_command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
         read_statLines = read_stats.stdout.readlines()
         read_stats.stdout.close()
+
+        if len(read_statLines) == 0: # try chrom names w/o the chr
+            view_command = '%s view %s 1:90000000-100000000' % (samtoolsString,self._bam)
+            read_stats = subprocess.Popen(view_command,stdin = subprocess.PIPE,stderr = subprocess.PIPE,stdout = subprocess.PIPE,shell = True)
+            read_statLines = read_stats.stdout.readlines()
+            read_stats.stdout.close()
+
         self._read_lengths = uniquify([len(line.split('\t')[9]) for line in read_statLines if len(line) >0])
+
+    def path(self):
+        return self._bam
 
     def getTotalReads(self,readType = 'mapped'):
         if readType == 'mapped':
@@ -1444,7 +1492,7 @@ def gffToFasta(genome,directory,gff,UCSC = True,useID=False):
         if useID:
             name = '>' + line[1]
         else:
-            name = '>'+ join([genome.lower(),line[0],str(line[3]),str(line[4]),line[6]],'|')
+            name = '>'+ '|'.join([genome.lower(),line[0],str(line[3]),str(line[4]),line[6]])
         fastaList.append(name)
         if line[6] == '-':
             #print(line[3])
