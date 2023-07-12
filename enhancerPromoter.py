@@ -42,18 +42,23 @@ THE SOFTWARE.
 
 
 import sys
-
-print "Using python version %s" % sys.version
-
 import os
 whereAmI = os.path.dirname(os.path.realpath(__file__))
 
 #importing utils package
-sys.path.append(whereAmI)
+#add locations of files and global parameters in this section
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+
+pipeline_dir = whereAmI + '/'
+
+sys.path.append(pipeline_dir)
 
 import argparse
 import cPickle
 import utils
+import pipeline_dfci
+import subprocess
+
 import string
 import tempfile
 import zlib
@@ -69,7 +74,21 @@ from collections import defaultdict
 
 #add locations of files and global parameters in this section
 
+pipeline_dir = whereAmI + '/'
+
+
 bamliquidator_path = 'bamliquidator_batch.py'
+
+#using a paramater dictionary in liue of a yaml or json for now
+
+
+
+paramDict = {'cpgPath': '/storage/cylin/grail/projects/mycn_resub/mycn/beds/hg19_cpg_islands.bed',
+
+             
+             }
+
+
 
 #================================================================================
 #===================================CLASSES======================================
@@ -82,7 +101,7 @@ bamliquidator_path = 'bamliquidator_batch.py'
 #================================================================================
 
 
-def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
+def loadAnnotFile(genome,tss_window,geneList=[],skip_cache=False):
     """
     load in the annotation and create a startDict and tss collection for a set of refseq IDs a given genome
     20170213, add by Quanhu Sheng
@@ -96,8 +115,32 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         'HG19_RIBO': 'annotation/hg19_refseq.ucsc',
         'RN4': 'annotation/rn4_refseq.ucsc',
         'RN6': 'annotation/rn6_refseq.ucsc',
+        'HG38': 'annotation/hg38_refseq.ucsc',
         }
 
+    genomeDirectoryDict = {
+        'HG19':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Chromosomes/',
+        'RN6':'/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Chromosomes/',
+        'MM9':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Chromosomes/',
+        'MM10':'/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Chromosomes/',
+        'HG38': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg38/Sequence/Chromosomes/',
+        }
+
+    mouse_convert_file = '%s/annotation/HMD_HumanPhenotype.rpt' % (whereAmI)
+
+    #making a dictionary for mouse to human conversion
+    mouse_convert_dict = defaultdict(str)
+    
+    mouse_convert_table = utils.parseTable(mouse_convert_file,'\t')
+    for line in mouse_convert_table:
+        mouse_convert_dict[line[4]] = line[0]
+            
+    genomeDirectory = genomeDirectoryDict[string.upper(genome)]
+
+
+    #making a chrom_dict that is a list of all chroms with sequence
+    chrom_list = utils.uniquify([name.split('.')[0] for name in os.listdir(genomeDirectory) if len(name) >0])
+    
     annotFile = whereAmI + '/' + genomeDict[string.upper(genome)]
 
     if not skip_cache:
@@ -128,6 +171,8 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
 
     startDict = utils.makeStartDict(annotFile, geneList)
     tssLoci =[]
+    if geneList==[]:
+        geneList = startDict.keys()
     validGenes = []
     for gene in geneList:
         if gene in startDict:
@@ -143,7 +188,7 @@ def loadAnnotFile(genome,window,geneList=[],skip_cache=False):
         with open(cache_file_path, 'wb') as cache_fh:
             cPickle.dump((startDict, tssCollection), cache_fh, cPickle.HIGHEST_PROTOCOL)
 
-    return startDict, tssCollection, validGenes
+    return startDict, tssCollection, genomeDirectory, chrom_list, mouse_convert_dict, validGenes
 
 
 
@@ -248,7 +293,7 @@ def mapBams(bamFileList,splitGFFPath,analysisName,mappedFolder):
             
             mappedTable = utils.parseTable( '%s%s_%s_MAPPED/matrix.txt' % (mappedFolder, analysisName, bamFileName),'\t')
             
-            for i in range(1,len(mappedTable[i])):
+            for i in range(1,len(mappedTable)):
                 mapSignal = mappedTable[i][2]
                 signalTable[i].append(mapSignal)
     else:
@@ -325,7 +370,7 @@ def makeAverageTable(outputFolder,analysisName,useBackground = False):
 
 
 
-def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path=''):
+def makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tss_window,distal_window,tads_path=''):
     
     '''
     makes the final peak table with ebox info
@@ -351,16 +396,16 @@ def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genom
     if len(geneList) == 0:
         geneList = startDict.keys()
 
-    tss_1kb_loci = []
-    tss_50kb_loci = []
+    tss_prox_loci = []
+    tss_distal_loci = []
     for refID in geneList:
         if refID in startDict:
-            tss_1kb_loci.append(utils.makeTSSLocus(refID,startDict,1000,1000))
-            tss_50kb_loci.append(utils.makeTSSLocus(refID,startDict,50000,50000))
+          tss_prox_loci.append(utils.makeTSSLocus(refID,startDict,tss_window,tss_window))
+          tss_distal_loci.append(utils.makeTSSLocus(refID,startDict,distal_window,distal_window))
 
     #make a 1kb flanking and 50kb flanking collection
-    tss_1kb_collection = utils.LocusCollection(tss_1kb_loci,50)
-    tss_50kb_collection = utils.LocusCollection(tss_50kb_loci,50)
+    tss_prox_collection = utils.LocusCollection(tss_prox_loci,50)
+    tss_distal_collection = utils.LocusCollection(tss_distal_loci,50)
 
     if len(tads_path) > 0:
         print('LOADING TADS FROM %s' % (tads_path))
@@ -369,7 +414,7 @@ def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genom
         
         #building a tad dict keyed by tad ID w/ genes in that tad provided
         tad_dict = defaultdict(list)
-        for tss_locus in tss_1kb_loci:
+        for tss_locus in tss_prox_loci:
             overlapping_tads = tad_collection.getOverlap(tss_locus,'both')
             for tad_locus in overlapping_tads:
                 tad_dict[tad_locus.ID()].append(tss_locus.ID())
@@ -452,7 +497,7 @@ def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genom
             newLine += [canonCount,otherCount,totalCount]
 
         #now find the overlapping and proximal genes
-        #here each overlapping gene the tss 1kb locus overlaps the peak
+        #here each overlapping gene the tss prox locus overlaps the peak
 
         if use_tads:
 
@@ -472,8 +517,8 @@ def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genom
 
 
         if len(tad_genes) >0:
-            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_1kb_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]
-            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_50kb_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]        
+            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_prox_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]
+            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_distal_collection.getOverlap(lineLocus,'both') if tad_genes.count(locus.ID()) > 0]        
             # print('linked peak to tad genes')
             # print([startDict[x]['name'] for x in tad_genes])
             # print(tad_id_list)
@@ -481,8 +526,8 @@ def makePeakTable(bedFile,splitGFFPath,averageTablePath,startDict,geneList,genom
             # print(overlappingGenes)
             # print(proximalGenes)
         else:
-            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_1kb_collection.getOverlap(lineLocus,'both')]
-            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_50kb_collection.getOverlap(lineLocus,'both')]        
+            overlappingGenes = [startDict[locus.ID()]['name'] for locus in tss_prox_collection.getOverlap(lineLocus,'both')]
+            proximalGenes = [startDict[locus.ID()]['name'] for locus in tss_distal_collection.getOverlap(lineLocus,'both')]        
 
         overlappingGenes = utils.uniquify(overlappingGenes) 
         #here the tss 50kb locus overlaps the peak 
@@ -523,7 +568,7 @@ def makeGeneTable(peakTable,analysisName):
         signal = float(line[9]) * regionLength
 
 
-        #genes where this particular peak overlaps the tss 1kb window
+        #genes where this particular peak overlaps the tss prox window
         #where there are both overlap and proximal meet
         if len(line) == 15:
             overlapGeneList = [gene for gene in line[-2].split(',') if len(gene) > 0]
@@ -586,14 +631,14 @@ def callRWaterfall(geneTablePath,outputFolder,analysisName,top):
     rBashFile = open(rBashFilePath,'w')
     rBashFile.write('#!/usr/bin/bash\n\n')
 
-    rCmd = 'R --no-save %s %s %s %s < %s/enhancerPromoter_waterfall.R' % (geneTablePath,outputFolder,analysisName,top,whereAmI)
+    rCmd = 'Rscript %senhancerPromoter_waterfall.R %s %s %s %s' % (pipeline_dir,geneTablePath,outputFolder,analysisName,top)
     rBashFile.write(rCmd)
     rBashFile.close()
     print('writing R plotting command to disk and calling %s' %(rBashFilePath))
     os.system('bash %s' % (rBashFilePath))
 
     #now check for the .cls output
-    clsPath = '%s%s_top_%s.cls' % (outputFolder,analysisName,top)
+    clsPath = '%s%s_top_all.cls' % (outputFolder,analysisName)
 
     if utils.checkOutput(clsPath,0.5,5):
         return 
@@ -602,31 +647,44 @@ def callRWaterfall(geneTablePath,outputFolder,analysisName,top):
         sys.exit()
 
 
-def callGSEA(gseaPath, gmxPath, outputFolder,analysisName,top):
+def callGSEA(outputFolder,analysisName,top,analysis_type ='enhancer_vs_promoter',use_top=True):
 
     '''
     runs C2 GSEA
     '''
-    #gseaPath = '/usr/local/bin/gsea/gsea2-2.2.2.jar'
-    #gmxPath = '/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
+
+    #figure out the suffix for gct and cls files
+    analysis_dict = {'enhancer_vs_promoter':['','#PROMOTER_versus_DISTAL'],
+                   'total_contribution':['_total_contrib','#SIGNAL_versus_BACKGROUND'],
+                   }
+    
+    if analysis_dict.has_key(analysis_type) == False:
+        print('Error: please use one of the following supported analysis types')
+        print(analysis_dict.keys())
+        sys.exit()
+
+    suffix = analysis_dict[analysis_type][0]
+
+    gseaPath = '/storage/cylin/home/cl6/gsea2-3.0_beta_2.jar'
+    gmxPath = '/storage/cylin/grail/annotations/gsea/c2.all.v5.1.symbols.gmt' #C2 set
 
 
-    gseaBashFilePath = '%s%s_GSEA_cmd.sh' % (outputFolder,analysisName)
+    gseaBashFilePath = '%s%s_GSEA%s_cmd.sh' % (outputFolder,analysisName,suffix)
     gseaBashFile = open(gseaBashFilePath,'w')
 
     gseaBashFile.write('#!/usr/bin/bash\n\n')
 
-    gseaBashFile.write('#COMMAND LINE GSEA CALLS FOR %s\n\n' % (analysisName))
+    gseaBashFile.write('#COMMAND LINE GSEA CALLS FOR %s USING %s COMPARISON\n\n' % (analysisName,string.upper(analysis_type)))
     
     
     #for all
-    gctPath = '%s%s_top_all.gct' % (outputFolder,analysisName)
-    clsPath = '%s%s_top_all.cls' % (outputFolder,analysisName)
-    gseaOutputFolder = utils.formatFolder('%sgsea_top_all_c2' % (outputFolder),True)
-    rptLabel = '%s_top_all' % (analysisName)
+    gctPath = '%s%s_top_all%s.gct' % (outputFolder,analysisName,suffix)
+    clsPath = '%s%s_top_all%s.cls' % (outputFolder,analysisName,suffix)
+    gseaOutputFolder = utils.formatFolder('%sgsea_top_all_c2%s' % (outputFolder,suffix),True)
+    rptLabel = '%s_top_all%s' % (analysisName,suffix)
 
     gseaBashFile.write('rm -rf %s/%s.Gsea* \n' % (gseaOutputFolder, rptLabel))
-    gseaCmd_all = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s#PROMOTER_versus_DISTAL -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,gmxPath,rptLabel,gseaOutputFolder)
+    gseaCmd_all = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s%s -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,analysis_dict[analysis_type][1],gmxPath,rptLabel,gseaOutputFolder)
 
     gseaBashFile.write(gseaCmd_all)
     gseaBashFile.write('\n')
@@ -638,57 +696,79 @@ def callGSEA(gseaPath, gmxPath, outputFolder,analysisName,top):
       gseaOutputFolder = utils.formatFolder('%sgsea_top_%s_c2' % (outputFolder,top),True)
       rptLabel = '%s_top_%s' % (analysisName,top)
 
-      gseaBashFile.write('rm -rf %s/%s.Gsea* \n' % (gseaOutputFolder, rptLabel))
-      gseaCmd_top = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s#PROMOTER_versus_DISTAL -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,gmxPath,rptLabel,gseaOutputFolder)
+    if use_top:
+        #for top N
+        gctPath = '%s%s_top_%s%s.gct' % (outputFolder,analysisName,top,suffix)
+        clsPath = '%s%s_top_%s%s.cls' % (outputFolder,analysisName,top,suffix)
+        gseaOutputFolder = utils.formatFolder('%sgsea_top_%s_c2%s' % (outputFolder,top,suffix),True)
+        rptLabel = '%s_top_%s%s' % (analysisName,top,suffix)
 
-      gseaBashFile.write(gseaCmd_top)
-      gseaBashFile.write('\n')
+        gseaBashFile.write('rm -rf %s/%s.Gsea* \n' % (gseaOutputFolder, rptLabel))
+        gseaCmd_top = 'java -Xmx4000m -cp %s xtools.gsea.Gsea -res %s -cls %s%s -gmx %s -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label %s -metric Diff_of_Classes -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 20 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out %s -gui false' % (gseaPath,gctPath,clsPath,analysis_dict[analysis_type][1],gmxPath,rptLabel,gseaOutputFolder)
+
+        gseaBashFile.write(gseaCmd_top)
+        gseaBashFile.write('\n')
 
     gseaBashFile.close()
     os.system('bash %s' % (gseaBashFilePath))
     
 
-def detectGSEAOutput(analysisName,outputFolder,top):
+def detectGSEAOutput(analysisName,outputFolder,top,analysis_type ='enhancer_vs_promoter'):
 
     '''
     tries to detect the .xls files that show up when GSEA is done running
     '''
+
+    #figure out the suffix for gct and cls files
+    analysis_dict = {'enhancer_vs_promoter':['','#PROMOTER_versus_DISTAL','PROMOTER','DISTAL'],
+                     'total_contribution':['_total_contrib','#SIGNAL_versus_BACKGROUND','SIGNAL','BACKGROUND'],
+                   }
     
+    if analysis_dict.has_key(analysis_type) == False:
+        print('Error: please use one of the following supported analysis types')
+        print(analysis_dict.keys())
+        sys.exit()
+
+    suffix = analysis_dict[analysis_type][0]
+
     #first figure out the friggin output folder 
-    gseaParentFolder = '%sgsea_top_%s_c2/' % (outputFolder,top)
+    gseaParentFolder = '%sgsea_top_%s_c2%s/' % (outputFolder,top,suffix)
 
     for i in range(30):
         folderList = os.listdir(gseaParentFolder)
         #print(folderList)
         
-        candidateFolderList = [folder for folder in folderList if folder.count('%s_top_%s.Gsea' % (analysisName,top)) == 1]
+        candidateFolderList = [folder for folder in folderList if folder.count('%s_top_%s%s.Gsea' % (analysisName,top,suffix)) == 1]
         if len(candidateFolderList) > 1:
             print('ERROR: MULTIPLE GSEA OUTPUT FOLDERS DETECTED FOR %s WITH TOP %s GENES' % (analysisName,string.upper(top)))
             sys.exit()
         elif len(candidateFolderList) == 0:
             time.sleep(10)
         elif len(candidateFolderList) == 1:
-            candidateFolder = '%sgsea_top_%s_c2/%s/' % (outputFolder,top,candidateFolderList[0])
+            candidateFolder = '%sgsea_top_%s_c2%s/%s/' % (outputFolder,top,suffix,candidateFolderList[0])
 
     print('USING %s AS CANDIDATE GSEA FOLDER' % (candidateFolder))
     timeStamp = candidateFolder.split('.')[-1][:-1]
     print(timeStamp)
     #now that you have the candidate folder find the friggen xls files
+    
+    class_1 = analysis_dict[analysis_type][2]
+    class_2 = analysis_dict[analysis_type][3]
     #for promoter
-    promoterTablePath = '%sgsea_report_for_PROMOTER_%s.xls' % (candidateFolder,timeStamp)
-    distalTablePath = '%sgsea_report_for_DISTAL_%s.xls' % (candidateFolder,timeStamp)
-    print(promoterTablePath)
-    print(distalTablePath)
+    class1TablePath = '%sgsea_report_for_%s_%s.xls' % (candidateFolder,class_1,timeStamp)
+    class2TablePath = '%sgsea_report_for_%s_%s.xls' % (candidateFolder,class_2,timeStamp)
+    print(class1TablePath)
+    print(class2TablePath)
     #now check em
-    if utils.checkOutput(promoterTablePath,0.5,30):
-        print('FOUND PROMOTER OUTPUT AT %s' % (promoterTablePath))
-        if utils.checkOutput(distalTablePath,0.5,30):
-            print('FOUND DISTAL OUTPUT AT %s' % (distalTablePath))
-            return promoterTablePath,distalTablePath
+    if utils.checkOutput(class1TablePath,0.5,30):
+        print('FOUND %s OUTPUT AT %s' % (class_1,class1TablePath))
+        if utils.checkOutput(class2TablePath,0.5,30):
+            print('FOUND %s OUTPUT AT %s' % (class_2,class2TablePath))
+            return class1TablePath,class2TablePath
     else:
         print('ERROR: UNABLE TO FIND GSEA OUTPUT')
 
-def callR_GSEA(promoterTablePath,distalTablePath,outputFolder,analysisName,top):
+def callR_GSEA(class1TablePath,class2TablePath,outputFolder,analysisName,top):
     
     '''
     function to call the Rscript and to wait until the .cls and .gct files are created
@@ -699,7 +779,7 @@ def callR_GSEA(promoterTablePath,distalTablePath,outputFolder,analysisName,top):
     rBashFile = open(rBashFilePath,'w')
     rBashFile.write('#!/usr/bin/bash\n\n')
 
-    rCmd = 'R --no-save %s %s %s %s %s < %s/enhancerPromoter_gsea.R' % (promoterTablePath,distalTablePath,outputFolder,analysisName,top,whereAmI)
+    rCmd = 'Rscript %senhancerPromoter_gsea.R %s %s %s %s %s' % (pipeline_dir,class1TablePath,class2TablePath,outputFolder,analysisName,top)
     rBashFile.write(rCmd)
     rBashFile.close()
     print('writing R plotting command to disk and calling %s' %(rBashFilePath))
@@ -736,7 +816,9 @@ def main():
     parser.add_argument("-i", "--input", dest="input", type=str,
                         help="Enter .gff or .bed file of regions to analyze", required=True)
     parser.add_argument("-g", "--genome", dest="genome", type=str,
-                        help="specify a genome, HG18,HG19,MM8,MM9,MM10,RN6 are currently supported", required=True)
+                        help="specify a genome, HG18,HG19,HG38,MM8,MM9,MM10,RN6 are currently supported", required=True)
+    
+
     # output flag
     parser.add_argument("-o", "--output", dest="output", type=str,
                         help="Enter the output folder.", required=True)
@@ -748,14 +830,20 @@ def main():
 
     parser.add_argument("-c", "--control", dest="control", nargs='*',
                         help="Enter a space separated list of .bam files for background. If flagged, will perform background subtraction", required=False)
-    parser.add_argument("-w", "--window", dest="window",type=int,
-                        help="Enter a window to define the TSS area +/- the TSS. Default is 1kb", required=False, default=1000)
+    parser.add_argument("-t", "--tss", dest="tss",type=int,
+                        help="Define the TSS area +/- the TSS. Default is 1kb", required=False, default=1000)
+    parser.add_argument("-d", "--distal", dest="distal",type=int,
+                        help="Enter a window to assign distal enhancer signal. Default is 50kb", required=False, default=50000)
+
+
+
+
+
     parser.add_argument("--other-bams", dest="other", nargs='*',
                         help="enter a space separated list of other bams to map to", required=False)
 
     parser.add_argument("--name", dest="name", type=str,
                         help="enter a root name for the analysis, otherwise will try to find the name from the input file", required=False)
-
 
     parser.add_argument("--top", dest="top", type=int,
                         help="Run the analysis on the top N genes by total signal. Default is 5000", required=False,default=5000)
@@ -771,17 +859,26 @@ def main():
     parser.add_argument("--gmxPath", dest="gmxPath", type=str, help="Enter GSEA gmt file location, such as c2.all.v5.1.symbols.gmt", required=True)
     parser.add_argument("--cpgPath", dest="cpgPath", type=str, help="Enter cpg coordinates in bed format", required=True)
 
+
+
     args = parser.parse_args()
 
     print(args)
 
     #minimum arguments needed to proceed
-    if args.bam and args.input and args.genome and args.genomeDirectory and args.output and args.gseaPath and args.gmxPath and args.cpgPath:
+    if args.bam and args.input and args.genome and args.output:
+
+        #=====================================================================================
+        #===============================I. PARSING ARGUMENTS==================================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#===========I. DATA SUMMARY============\n#======================================\n')
+
         #top analysis subset
         top = args.top
 
         #input genome
-        genome = args.genome
+        genome = args.genome.upper()
         print('PERFORMING ANALYSIS ON %s GENOME BUILD' % (genome))
         
         #set of bams
@@ -806,25 +903,37 @@ def main():
 
         if inputPath.split('.')[-1] == 'bed':
             #type is bed
+            print('input in bed format, converting to gff')
             inputGFF = utils.bedToGFF(inputPath)
         else:
             inputGFF = utils.parseTable(inputPath,'\t')
+
         
-        #the tss window
-        window = int(args.window)
+        #the tss window for proximal signal assignment
+        tss_window = int(args.tss)
+
+        #the distal window for assigning nearby enhancer signal
+        distal_window = int(args.distal)
 
         #activity path
         if args.activity:
             activityPath = args.activity
             activityTable = utils.parseTable(activityPath,'\t')
-            
+            ref_col = 0
             #try to find the column for refseq id
-            for i in range(len(activityTable[0])):
-                if str(activityTable[0][i]).count('NM_') > 0 or str(activityTable[0][i]).count('NR_') >0:
+            for i in range(len(activityTable[2])): #use an internal row in case of header
+                if str(activityTable[1][i]).count('NM_') > 0 or str(activityTable[1][i]).count('NR_') >0:
                     ref_col = i
+            
+            #now check for header
+            if str(activityTable[0][i]).count('NM_') == 0 and str(activityTable[0][i]).count('NR_') ==0:
+                print('REMOVING HEADER FROM GENE TABLE:')
+                print(activityTable[0])
+                activityTable.pop(0)
 
             geneList = [line[ref_col] for line in activityTable] # this needs to be REFSEQ NM ID
             print('IDENTIFIED %s ACTIVE GENES' % (len(geneList)))
+
         else:
             geneList = []
 
@@ -839,15 +948,31 @@ def main():
         
         genomeDirectory=args.genomeDirectory
         
+        #Quanhu Sheng, assign valid_genes to geneList, 20230712
         #important here to define the window
-        startDict,tssCollection,geneList = loadAnnotFile(genome,window,geneList,True)
-        print('IDENTIFIED %s valid ACTIVE GENES' % (len(geneList)))
-        print(len(startDict))
+        startDict,tssCollection,genomeDirectory,chrom_list,mouse_convert_dict,geneList = loadAnnotFile(genome,tss_window,geneList,True)
+        #print(tssCollection.getOverlap(utils.Locus('chr5',171387630,171388066,'.')))
+        #sys.exit()
+
+        print('FILTERING THE INPUT GFF FOR GOOD CHROMOSOMES')
+        
+
+        print(chrom_list)
+        filtered_gff = [line for line in inputGFF if chrom_list.count(line[0]) > 0]
+        
+        print('%s of INITIAL %s REGIONS ARE IN GOOD CHROMOSOMES' % (len(filtered_gff),len(inputGFF)))
+
+        #=====================================================================================
+        #================II. IDENTIFYING TSS PROXIMAL AND DISTAL ELEMENTS=====================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#==II. MAPPING TO TSS/DISTAL REGIONS===\n#======================================\n')
+
 
         #now we need to split the input region 
-        print('SPLITTING THE INPUT GFF USING A WINDOW OF %s' % (window))
-        splitGFF = splitRegions(inputGFF,tssCollection)
-        print(len(inputGFF))
+        print('SPLITTING THE INPUT GFF USING A WINDOW OF %s' % (tss_window))
+        splitGFF = splitRegions(filtered_gff,tssCollection)
+        print(len(filtered_gff))
         print(len(splitGFF))
 
         splitGFFPath = '%s%s_SPLIT.gff' % (outputFolder,analysisName)
@@ -884,28 +1009,69 @@ def main():
             print('PEAK TABLE OUTPUT ALREADY EXISTS')
             peakTable = utils.parseTable(peakTablePath,'\t')
         else:
-            peakTable = makePeakTable(args.cpgPath,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tads_path)        
+            peakTable = makePeakTable(paramDict,splitGFFPath,averageTablePath,startDict,geneList,genomeDirectory,tss_window,distal_window,tads_path)        
             utils.unParseTable(peakTable,peakTablePath,'\t')
 
         geneTable = makeGeneTable(peakTable,analysisName)        
 
         geneTablePath = '%s%s_GENE_TABLE.txt' % (outputFolder,analysisName)
         utils.unParseTable(geneTable,geneTablePath,'\t')
+
+        #if mouse, need to convert genes over
+        if genome.count('MM') ==1:
+            print('CONVERTING MOUSE NAMES TO HUMAN HOMOLOGS FOR GSEA')
+            converted_geneTablePath = '%s%s_GENE_TABLE_CONVERTED.txt' % (outputFolder,analysisName)
         
-        if(top > len(geneTable)):
-          top = 'all'
-        
+            converted_geneTable = [geneTable[0]]
+            for line in geneTable[1:]:
+                converted_name = mouse_convert_dict[line[0]]
+                if len(converted_name) >0:
+                    converted_geneTable.append([converted_name] + line[1:])
+
+                    utils.unParseTable(converted_geneTable,converted_geneTablePath,'\t')
+
+            geneTablePath = converted_geneTablePath
+            geneTable = converted_geneTable
+
+        #=====================================================================================
+        #===================================III. PLOTTING ====================================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#===III. PLOTTING ENHANCER/PROMOTER===\n#======================================\n')
+
+        #if there are fewer genes in the gene table than the top genes, only run on all
+        if len(geneTable)  < int(top):
+            print('WARNING: ONLY %s GENES WITH SIGNAL AT EITHER PROMOTERS OR ENHANCERS. NOT ENOUGH TO RUN ANALYSIS ON TOP %s' % (len(geneTable)-1,top))
+            top = 0
+            use_top =False
+        else:
+            use_top =True
+
         #now call the R code
         print('CALLING R PLOTTING SCRIPTS')
         callRWaterfall(geneTablePath,outputFolder,analysisName,top)
 
+
+        #=====================================================================================
+        #==================================IV. RUNNING GSEA===================================
+        #=====================================================================================
+
+        print('\n\n#======================================\n#============IV. RUNNING GSEA=========\n#======================================\n')
+
         #now let's call gsea
         print('RUNNING GSEA ON C2')
-        callGSEA(args.gseaPath, args.gmxPath, outputFolder,analysisName,top)
+        callGSEA(outputFolder,analysisName,top,'enhancer_vs_promoter',use_top)       
+        callGSEA(outputFolder,analysisName,top,'total_contribution',use_top)        
         
-        if top != 'all':
-          print('DETECTING GSEA OUTPUT FOR TOP %s GENES' % (top))
-          top_promoterTablePath,top_distalTablePath = detectGSEAOutput(analysisName,outputFolder,top)
+        if use_top:
+            print('DETECTING GSEA OUTPUT FOR TOP %s GENES' % (top))
+            #for top by enhancer v promoter metric 
+            top_promoterTablePath,top_distalTablePath = detectGSEAOutput(analysisName,outputFolder,top,'enhancer_vs_promoter')
+            top_signalTablePath,top_backgroundTablePath = detectGSEAOutput(analysisName,outputFolder,top,'total_contribution')
+
+            print('MAKING NES PLOTS FOR TOP %s GENES' % (top))
+            callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName+'_enhancer_vs_promoter',top)
+            callR_GSEA(top_signalTablePath,top_backgroundTablePath,outputFolder,analysisName+'_total_contribution',top)
 
           print('MAKING NES PLOTS FOR TOP %s GENES' % (top))
           callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,top)
@@ -914,13 +1080,11 @@ def main():
         top_promoterTablePath,top_distalTablePath = detectGSEAOutput(analysisName,outputFolder,'all')
 
         print('MAKING NES PLOTS FOR ALL GENES')
-        callR_GSEA(top_promoterTablePath,top_distalTablePath,outputFolder,analysisName,'all')
+        callR_GSEA(all_promoterTablePath,all_distalTablePath,outputFolder,analysisName,'all')
 
 
         #these files can be parsed to make the NES plot
 
-
-        #gsea_report_for_DISTAL_1459192369220.xls
         #[x for x in fileList if x.count('report_for') == 1and x.count('xls') ==1]
         print('ALL DONE WITH ANALYSIS FOR %s' % (analysisName))
         

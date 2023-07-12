@@ -1,7 +1,27 @@
 #bamPlot.py
 
+
+# Get the script's full local path
+import os
+import sys
+
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+
+pipeline_dir = whereAmI + '/'
+print(pipeline_dir)
+sys.path.append(pipeline_dir)
 from utils import *
 import string
+
+import cPickle
+
+
+
+
+import tempfile
+import zlib
+from distutils.spawn import find_executable
+
 '''
 The MIT License (MIT)
 
@@ -33,25 +53,51 @@ THE SOFTWARE.
 #as of now the number of bins to sample the space is hard wired
 nBins = 200
 
-def loadAnnotFile(genome):
+def loadAnnotFile(genome,skip_cache=False):
 
     '''
     load in the annotation and create a geneDict and transcription collection
     '''
     genomeDict = {
-        'HG18':'/ark/home/cl512/pipeline/annotation/hg18_refseq.ucsc',
-        'MM9': '/ark/home/cl512/pipeline/annotation/mm9_refseq.ucsc',
-        'hg18':'/ark/home/cl512/pipeline./annotation/hg18_refseq.ucsc',
-        'mm9': '/ark/home/cl512/pipeline/annotation/mm9_refseq.ucsc',
-        'hg19':'/ark/home/cl512/pipeline/annotation/hg19_refseq.ucsc',
-        'HG19':'/ark/home/cl512/pipeline/annotation/hg19_refseq.ucsc',
+        'HG18':'%sannotation/hg18_refseq.ucsc' % (pipeline_dir),
+        'MM9': '%sannotation/mm9_refseq.ucsc' % (pipeline_dir),
+        'HG19':'%sannotation/hg19_refseq.ucsc' % (pipeline_dir),
         }
 
-    annotFile = genomeDict[genome]
-    #geneList =['NM_002460','NM_020185']
+    annotFile = genomeDict[genome.upper()]
+
+    if not skip_cache:
+        # Try loading from a cache, if the crc32 matches
+        annotPathHash = zlib.crc32(annotFile) & 0xFFFFFFFF  # hash the entire location of this script
+        annotFileHash = zlib.crc32(open(annotFile, "rb").read()) & 0xFFFFFFFF
+
+        cache_file_name = "%s.%s.%s.cache" % (genome, annotPathHash, annotFileHash)
+
+        cache_file_path = '%s/%s' % (tempfile.gettempdir(), cache_file_name)
+
+        if os.path.isfile(cache_file_path):
+            # Cache exists! Load it!
+            try:
+                print('\tLoading genome data from cache.')
+                with open(cache_file_path, 'rb') as cache_fh:
+                    cached_data = cPickle.load(cache_fh)
+                    print('\tCache loaded.')
+                return cached_data
+            except (IOError, cPickle.UnpicklingError):
+                # Pickle corrupt? Let's get rid of it.
+                print('\tWARNING: Cache corrupt or unreadable. Ignoring.')
+        else:
+            print('\tNo cache exists: Loading annotation (slow).')
+
+
     geneList = []
     geneDict = makeGenes(annotFile,geneList,True)
     txCollection =makeTranscriptCollection(annotFile,0,0,500,geneList) 
+
+    if not skip_cache:
+        print('Writing cache for the first time.')
+        with open(cache_file_path, 'wb') as cache_fh:
+            cPickle.dump((geneDict, txCollection), cache_fh, cPickle.HIGHEST_PROTOCOL)
 
     return geneDict,txCollection
 
@@ -239,7 +285,7 @@ def callRPlot(nameTable,diagramTable,plotTable,yScale,plotStyle,fileName):
     calls the R plotting thingy
     '''
 
-    cmd = 'R --no-save %s %s %s %s %s %s < /ark/home/cl512/pipeline/bamPlot.R' % (nameTable,diagramTable,plotTable,yScale,plotStyle,fileName)
+    cmd = 'Rscript %sbamPlot.R %s %s %s %s %s %s' % (pipeline_dir,nameTable,diagramTable,plotTable,yScale,plotStyle,fileName)
     print('calling command %s' % (cmd))
     os.system(cmd)
 
@@ -265,6 +311,7 @@ def makeBamPlotTables(gff,genome,bamFileList,colorList,nBins,sense,unique,extens
     geneDict,txCollection = loadAnnotFile(genome)
 
     #go line by line in the gff
+    ticker = 1
     for gffLine in gff:
         gffString = '%s_%s_%s_%s' % (gffLine[0],gffLine[6],gffLine[3],gffLine[4])
         print('writing the gene diagram table for %s' % (gffLine[1]))
@@ -290,7 +337,9 @@ def makeBamPlotTables(gff,genome,bamFileList,colorList,nBins,sense,unique,extens
         diagramTable = outFolder+gffString+'_diagramTemp.txt'
         plotTable = outFolder+gffString+'_plotTemp.txt'
         nameTable = outFolder +gffString+'_nameTemp.txt'
-        callRPlot(nameTable,diagramTable,plotTable,yScale,plotStyle,fileName)
+        temp_fileName = '%s_%s.pdf' % (fileName,ticker)
+        callRPlot(nameTable,diagramTable,plotTable,yScale,plotStyle,temp_fileName)
+        ticker+=1
 
 
 
@@ -328,7 +377,7 @@ def main():
                       help = "Extends reads by n bp. Default value is 200bp")
     parser.add_option("-r","--rpm", dest="rpm",action = 'store_true', default=True,
                       help = "Normalizes density to reads per million (rpm) Default is True")
-    parser.add_option("-u","--unique", dest="unique",action = 'store_false', default=True,
+    parser.add_option("-u","--unique", dest="unique",action = 'store_true', default=False,
                       help = "Uses only unique reads")
     parser.add_option("-y","--yScale",dest="yScale",nargs =1, default = "relative",
                       help = "Choose either relative or uniform y axis scaling. options = 'relative,uniform' Default is relative scaling")

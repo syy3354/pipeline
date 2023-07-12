@@ -21,6 +21,9 @@ import subprocess
 from collections import defaultdict
 
 
+# Get the script's full local path
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+pipeline_dir = whereAmI + '/'
 
 
 #==================================================================
@@ -477,7 +480,7 @@ def main():
     # LOADING IN THE BOUND REGION REFERENCE COLLECTION
     print('LOADING IN GFF REGIONS')
     referenceCollection = utils.gffToLocusCollection(inputGFF)
-
+    print('STARTING WITH %s INPUT REGIONS' % (len(referenceCollection)))
     print('CHECKING REFERENCE COLLECTION:')
     checkRefCollection(referenceCollection)
         
@@ -486,16 +489,19 @@ def main():
     # see if there's a mask
     if options.mask:
         maskFile = options.mask
-        # if it's a bed file
+        print('USING MASK FILE %s' % (maskFile))
+        #if it's a bed file
         if maskFile.split('.')[-1].upper() == 'BED':
             maskGFF = utils.bedToGFF(maskFile)
         elif maskFile.split('.')[-1].upper() == 'GFF':
             maskGFF = utils.parseTable(maskFile, '\t')
         else:
             print("MASK MUST BE A .gff or .bed FILE")
-            sys.exit()
-        maskCollection = utils.gffToLocusCollection(maskGFF)
 
+
+
+        maskCollection = utils.gffToLocusCollection(maskGFF)
+        print('LOADING %s MASK REGIONS' % (len(maskCollection)))
         # now mask the reference loci
         referenceLoci = referenceCollection.getLoci()
         filteredLoci = [locus for locus in referenceLoci if len(maskCollection.getOverlap(locus, 'both')) == 0]
@@ -505,7 +511,6 @@ def main():
     # NOW STITCH REGIONS
     print('STITCHING REGIONS TOGETHER')
     stitchedCollection, debugOutput, stitchWindow = regionStitching(referenceCollection, inputName, outFolder, stitchWindow, tssWindow, annotFile, removeTSS)
-
     # NOW MAKE A STITCHED COLLECTION GFF
     print('MAKING GFF FROM STITCHED COLLECTION')
     stitchedGFF = utils.locusCollectionToGFF(stitchedCollection)
@@ -587,12 +592,12 @@ def main():
 
         rankbyName = options.rankby.split('/')[-1]
         controlName = options.control.split('/')[-1]
-        cmd = 'R --no-save %s %s %s %s < ROSE2_callSuper.R' % (outFolder, outputFile1, inputName, controlName)
+        cmd = 'Rscript %sROSE2_callSuper.R %s %s %s %s' % (pipeline_dir,outFolder, outputFile1, inputName, controlName)
 
     else:
         rankbyName = options.rankby.split('/')[-1]
         controlName = 'NONE'
-        cmd = 'R --no-save %s %s %s %s < ROSE2_callSuper.R' % (outFolder, outputFile1, inputName, controlName)
+        cmd = 'Rscript %sROSE2_callSuper.R %s %s %s %s' % (pipeline_dir,outFolder, outputFile1, inputName, controlName)
     print(cmd)
 
     os.system(cmd)
@@ -601,25 +606,25 @@ def main():
     time.sleep(20)
     superTableFile = "%s_SuperEnhancers.table.txt" % (inputName)
     if options.control:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s &" % (genome, options.rankby, options.control, outFolder, superTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s" % (genome, options.rankby, options.control, outFolder, superTableFile)
     else:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s &" % (genome, options.rankby, outFolder, superTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s" % (genome, options.rankby, outFolder, superTableFile)
     os.system(cmd)
 
 
     stretchTableFile = "%s_StretchEnhancers.table.txt" % (inputName)
     if options.control:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s &" % (genome, options.rankby, options.control, outFolder, stretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s" % (genome, options.rankby, options.control, outFolder, stretchTableFile)
     else:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s &" % (genome, options.rankby, outFolder, stretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s" % (genome, options.rankby, outFolder, stretchTableFile)
     os.system(cmd)
 
 
     superStretchTableFile = "%s_SuperStretchEnhancers.table.txt" % (inputName)
     if options.control:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s &" % (genome, options.rankby, options.control, outFolder, superStretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -c %s -i %s%s" % (genome, options.rankby, options.control, outFolder, superStretchTableFile)
     else:
-        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s &" % (genome, options.rankby, outFolder, superStretchTableFile)
+        cmd = "python ROSE2_geneMapper.py -g %s -r %s -i %s%s" % (genome, options.rankby, outFolder, superStretchTableFile)
     os.system(cmd)
 
 

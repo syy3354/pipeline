@@ -178,10 +178,10 @@ print('THESE ARE THE ARGUMENTS')
 print(args)
 
 #ARGS
-outFolder = args[3]
-enhancerFile = args[4]
-enhancerName = args[5]
-wceName = args[6]
+outFolder = args[6]
+enhancerFile = args[7]
+enhancerName = args[8]
+wceName = args[9]
 
 
 #============================================================================

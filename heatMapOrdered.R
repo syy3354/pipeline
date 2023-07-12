@@ -25,30 +25,35 @@ library(graphics)
 
 args <- commandArgs()
 
-print(args[3:9])
+print(args)
 
-referenceGFF = args[3]
-mappedGFF = args[4]
-colorVector = as.numeric(unlist(strsplit(args[5],',')))
+referenceGFF = args[6]
+mappedGFF = args[7]
+colorVector = as.numeric(unlist(strsplit(args[8],',')))
 color = rgb(colorVector[1],colorVector[2],colorVector[3],maxColorValue=255)
-output = args[6]
-geneListFile = args[7]
-relative = as.numeric(args[8])
-backgroundGFF = args[9]
+output = args[9]
+geneListFile = args[10]
+relative = as.numeric(args[11])
+backgroundGFF = args[12]
 
 
 #getting the reference order and color spectrum
-referenceData <- read.delim(file=referenceGFF,sep="\t",header=TRUE)
-
+print("Getting reference data")
+print(referenceGFF)
+referenceData = read.delim(file=referenceGFF,sep="\t",header=TRUE)
 
 if(nchar(geneListFile) > 5){
 geneListTable = read.delim(geneListFile,header=FALSE)
 geneList = as.vector(geneListTable[,1])}else{geneList = as.vector(seq(1,nrow(referenceData),1))}
 
 #loading mappedGFF
+print("Loading mapped data")
+print(mappedGFF)
 mappedData <- read.delim(file=mappedGFF,sep="\t",header=TRUE)
 mappedData <- as.matrix(mappedData[geneList,3:ncol(mappedData)])  #remove GENE_ID  & locusLine and force to matrix
 colnames(mappedData) <- NULL
+
+
 
 #performing background correction
 if(backgroundGFF != 'NONE' | nchar(backgroundGFF) > 5){
@@ -75,8 +80,8 @@ colorSpectrum <- colorRampPalette(c("white",color))(100)
 minValue <- quantile(referenceData,na.rm=TRUE,prob=0.6,names=FALSE)
 print('min value is')
 print(minValue)
-#maxValue <- quantile(referenceData,na.rm=TRUE,prob=0.95,names=FALSE)
-maxValue = 3
+maxValue <- quantile(referenceData,na.rm=TRUE,prob=0.95,names=FALSE)
+#maxValue = 3
 print('max value is')
 print(maxValue)
 color_cuts <- seq(minValue,maxValue,length=100)

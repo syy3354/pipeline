@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #pipeline.py
 
 
@@ -39,7 +39,12 @@ THE SOFTWARE.
 
 
 import sys
-sys.path.append('/home/chazlin/pipeline/')
+import os
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+
+pipelineFolder = '%s/' % (whereAmI) # need to set this to where this code is stored
+
+sys.path.append(pipelineFolder)
 
 print('\nUsing following version of python:\n')
 print(sys.version)
@@ -48,7 +53,7 @@ print('\n\n')
 
 
 from utils import *
-
+import utils
 import datetime
 import subprocess
 import time
@@ -56,7 +61,7 @@ import re
 import random
 import string
 import numpy
-import os
+
 
 from collections import defaultdict
 
@@ -65,9 +70,6 @@ from collections import defaultdict
 #==========================================================================
 
 
-whereAmI = os.path.dirname(os.path.realpath(__file__))
-
-pipelineFolder = '%s/' % (whereAmI) # need to set this to where this code is stored
 samtoolsString = 'samtools'
 bamliquidator_path = 'bamliquidator_batch.py'
 
@@ -98,6 +100,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 
 #FORMATTING FUNCTIONS
 #makePipelineTable(sampleTableFile,dirPath,bamPath,outputFile,overwrite=False):
+#makeGenialisTable(dataFile,outFilePath,organism='',seqType='',paired=False,collection='',annotator='',source='',strain='',tissue='',age='',genotype='',molecule='',libraryStrategy='',exPro='',libraryConst='',other1='',other2='')
 
 #LOADING THE MASTER DATA TABLE
 #def loadDataTable(dataFile):
@@ -125,6 +128,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 
 #CALLING BOWTIE TO MAP DATA
 #def makeBowtieBashJobs(pipelineFile,namesList = [],launch=True,overwrite=False):
+#def makeBowtieBashJobsSlurm(pipelineFile,namesList = [],launch=True,overwrite=False):
 #def callBowtie(dataFile,dataList = [],overwrite = False):
 
 #GETTING MAPPING STATS
@@ -146,6 +150,7 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #CALLING MACS
 #def callMacsQsub(dataFile,macsFolder,namesList = [],overwrite=False,pvalue='1e-9'):
 #def callMacs(dataFile,macsFolder,namesList = [],overwrite=False,pvalue='1e-9',useBackground =True):
+#def callMacsSlurm(dataFile,macsFolder,namesList = [],overwrite=False,pvalue='1e-9',useBackground =True):
 #def callMacs2(dataFile,macsFolder,namesList = [],broad=True,noBackground = False,pairedEnd = False,overwrite=False,pvalue='1e-9'):
 
 #FORMATTING MACS OUTPUT
@@ -194,7 +199,8 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #FORMATTING MAPPING SIGNAL
 #def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=False,output =''):
 
-
+#WRAPPING MAPPER
+#def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianNorm=False,output=''):
 #MAKING GFF LISTS
 #def makeGFFListFile(mappedEnrichedFile,setList,output,annotFile=''):
 
@@ -209,7 +215,10 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #def callGenePlot(dataFile,geneID,plotName,annotFile,namesList,outputFolder,region='TXN',yScale = 'UNIFORM'):
 
 #BATCH PLOTTING REGIONS
-#def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=True):
+#def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=True,bed ='',plotType= 'MULTIPLE',extension=200,multiPage = False,debug=False,nameString = '',rpm=True,rxGenome = '',scaleFactorString =''):
+
+#PLOTTING TF CORR HEATMAPS FROM CRC MOTIF BEDS
+#def plotCRCCorrMaps(analysis_name,motifBedDir,tf_list_path='',window=50)
 
 #-------------------------------------------------------------------------#
 #                                                                         #
@@ -244,7 +253,17 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #CALLING ROSE
 #def callRose(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch=12500,bashFileName ='',mask=''):
 #def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask=''):
+#def callRose2Slurm(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask=''):
 
+
+#-------------------------------------------------------------------------#
+#                                                                         #
+#                               CRC TOOLS                                 #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+
+#def call_crc(analysis_name,enhancer_path,subpeak_path,activity_path,crc_folder=''):
 
 #-------------------------------------------------------------------------#
 #                                                                         #
@@ -253,7 +272,9 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #-------------------------------------------------------------------------#
 
 #MAKING EXPRESSION TABLES
+#def mapHisat(dataFile,namesList=[],useSRA=False,pCount=16,Launch=True):
 #def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
+#def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
 
 
 #-------------------------------------------------------------------------#
@@ -262,6 +283,24 @@ fastqDelimiter = '::' #delimiter for pairs in fastqs
 #                                                                         #
 #-------------------------------------------------------------------------#
 
+
+#-------------------------------------------------------------------------#
+#                                                                         #
+#                               UCSC TOOLS                                #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+#def makeTrackHub(analysis_name,project_folder,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False)
+
+
+
+#-------------------------------------------------------------------------#
+#                                                                         #
+#                              GSEA TOOLS                                 #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+#def wrapGSEA(gctPath,clsPath,sample_1,sample_2,analysis_name,output_folder,metric,gmxPath='',gseaPath='',launch=True)
 
 #============================================================================================================
 #============================================================================================================
@@ -354,7 +393,7 @@ def formatDataTable(dataFile):
         #if the first three are filled in, check to make sure there are 8 columns
         else:
             if len(line) > 3 and len(line) < 9:
-                newLine = line + (9-len(line))*['']
+                newLine = line + (8-len(line))*[''] + ['NA']
                 newDataTable.append(newLine)
             elif len(line) >= 9:
                 newLine = line[0:9]
@@ -424,6 +463,78 @@ def makePipelineTable(sampleTableFile,dirPath,bamPath,outputFile,overwrite=False
 
     unParseTable(pipelineTable,outputFile,'\t')
 
+def makeGenialisTable(dataFile,outFilePath,organism='',seqType='',paired=False,collection='',annotator='',source='',strain='',tissue='',age='',genotype='',molecule='',libraryStrategy='',exPro='',libraryConst='',other1='',other2=''):
+    #Most of these inputs are left as blanks, because they are dependent on how the data was prepared.
+    #   dataFile is the pipeline formated table used for the Lin Lab pipeline
+    #   outFilePath designates where you would like the annotation table to be written to
+    #   organism type is based on the genome used, but must be written with the proper format
+    #   seqType is the type of sequencing (e.g. RNAseq, CHiPseq, etc)
+    #   paired is default False, if you have paired end data, set this to True
+    #   collection is the name of your project, it is helpful to you to make it meaningful
+    #   annotator is the person preparing the annotation    
+    #   source, strain, tissue, age, and genotype are self-explanitory
+    #   molecule can be one of the following:
+    #                  total RNA
+    #                  polyA RNA
+    #                  cytoplasmic RNA
+    #                  nuclear RNA
+    #                  genomic DNA
+    #                  protein
+    #                  other
+    #  libraryStrategy can be used to denote strand i.e. single end ChIP-Seq
+    #  exPro is the extraction protocol used i.e. young lab chip protocol
+    #  libraryConst is the library construction protocol used i.e. rubicon thruplex
+    #  other1 and other2 can be used to denote any other information that is not in the table
+    
+
+    #This is the header for genialis annotation tables
+    genialis_header = ['NAME','FASTQ_R1','FASTQ_R2','SEQ_TYPE','PAIRED','COLLECTION','ANNOTATOR','SOURCE','ORGANISM','STRAIN','TISSUE','AGE','GENOTYPE','MOLECULE',
+                       'LIBRARY_STRATEGY','EXTRACTION_PROTOCOL','LIBRARY_CONSTRUCTION_PROTOCOL','OTHER_CHAR_1','OTHER_CHAR_2']
+    
+    #This selects the proper organism based on the genome you are using
+    genomeDict = {'HG38':'Homo sapiens',
+                  'HG19':'Homo sapiens',
+                  'HG19_ERCC':'Homo sapiens',
+                  'MM9':'Mus musculus',
+                  'MM10':'Mus musculus',
+                  'RN6':'Rattus norvegicus',
+                  'RN6_ERCC':'Rattus norvegicus',
+                           }
+
+    #make list to populate and write to table
+    genialisTable=[]
+    
+    #add the header to the list
+    genialisTable.append(genialis_header)
+    
+    #parse the data table
+    dataTable = utils.parseTable(dataFile,'\t')
+
+
+    #Iterates through the table to select core information for annotation table
+    for line in dataTable[1:]:
+        name = line[3]
+        if paired==False:
+            print(line)
+            fastq1 = line[8]
+            fastq2 = ''
+            pair=0
+        elif paired==True:
+            foo = line[8].split('::')
+            print(foo)
+            fastq1 = foo[0]
+            fastq2 = foo[1]
+            pair=1
+        if organism=='':
+            organism=genomeDict[line[2].upper()]
+
+        new_line = [name,fastq1,fastq2,seqType,pair,collection,annotator,source,organism,strain,tissue,age,
+                    genotype,molecule,libraryStrategy,exPro,libraryConst,other1,other2]
+
+        genialisTable.append(new_line)
+
+    #Writes table to output
+    utils.unParseTable(genialisTable,outFilePath,'\t')
 
 
 
@@ -464,7 +575,8 @@ def loadDataTable(dataFile):
         dataDict[line[3]]['enriched'] = line[5]
         dataDict[line[3]]['background'] = line[4]
         dataDict[line[3]]['enrichedMacs'] = line[6]
-        dataDict[line[3]]['color'] = line[7]
+        color_string = string.replace(line[7],'"','')
+        dataDict[line[3]]['color'] = color_string
         dataDict[line[3]]['fastq']=line[8]
 
 
@@ -768,6 +880,203 @@ def makeBowtieBashJobs(dataFile,namesList = [],launch=True,overwrite=False,param
                 time.sleep(1)
                 cmd = "bash %s%s_bwt2.sh &" % (outputFolder,uniqueID)
                 os.system(cmd)
+
+def makeBowtieBashJobsSlurm(dataFile,namesList = [],launch=True,overwrite=False,pCount=1,paramString=' '):
+
+    '''
+    makes a mapping bash script and launches
+    '''
+    if paramString.count('-p') >0:
+        print('Error: specify processor count in the pCount argument')
+        sys.exit()
+    if paramString[0] == ' ':
+        paramString = paramString[1:] 
+    paramString += ' -p %s' % (pCount)
+    print('Using a parameter string of:')
+    print(paramString)
+    #hardCoded index locations
+    dataDict = loadDataTable(dataFile)
+
+    #print(dataDict)
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+    namesList.sort()
+
+
+    for name in namesList:
+
+        fastqFile = dataDict[name]['fastq']
+        #paired end files will be comma separated
+        if fastqFile.count(fastqDelimiter) == 1:
+            pairedEnd = True
+        elif fastqFile.count(fastqDelimiter) > 1:
+            print("UNABLE TO PARSE OUT FASTQ FILES FOR %s" % (name))
+        else:
+            pairedEnd = False
+        genome = dataDict[name]['genome']
+
+        #get the unique ID
+        uniqueID = dataDict[name]['uniqueID']
+
+        outputFolder = dataDict[name]['folder']
+        outputFolder = formatFolder(outputFolder,create=True)
+
+        #setting up the folder for linking
+        linkFolder = '/storage/cylin/grail/bam/%s/' % (string.lower(genome))
+
+        #decide whether or not to run
+        try:
+            foo = open(dataDict[name]['bam'],'r')
+            if not overwrite:
+                print('BAM file already exists for %s. OVERWRITE = FALSE' % (name))
+                run = False
+                pass
+            else:
+                run = True
+        except IOError:
+            print('no bam file found for %s, making mapping bash script' % (name))
+            run = True
+
+        if run:
+
+            cmd = "python2 %s/callBowtie2Slurm.py -f %s -g %s -u %s -o %s --link-folder %s" % (whereAmI,fastqFile,genome,uniqueID,outputFolder,linkFolder)
+
+            #add the param string
+            cmd += " --param '%s'" % (paramString)
+
+            if pairedEnd:
+                cmd += ' -p'
+
+            print(cmd)
+            os.system(cmd)
+            if launch:
+                time.sleep(1)
+                cmd = "sbatch -n %s --mem 32768 %s%s_bwt2.sh &" % ((pCount+2),outputFolder,uniqueID)
+                os.system(cmd)
+                #change it to sbatch and off you go
+
+
+#================================================================
+#===================SPLITTING CHIPRX BAMS========================
+#================================================================
+
+def splitChipRXBams(dataFile,genome1='',genome2='',namesList=[],header1='',header2=''):
+    #genome1 is primary genome
+    #genome2 is secondary genome
+    #header 1 is the path to the header for genome1 sam files
+    #header 2 is the path to the header for genome2 sam files
+
+
+
+    dataDict = loadDataTable(dataFile)
+
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+    namesList.sort()
+
+    for name in namesList: 
+        bam_dir = dataDict[name]['folder']
+        uniqueID=dataDict[name]['uniqueID']
+
+
+        #open the bashfile to write to
+        bashFileName = "%s%s_splitBamSlurm.sh" % (bam_dir,uniqueID)
+        bashFile = open(bashFileName,'w')
+
+        #shebang
+        bashFile.write('#!/usr/bin/bash\n')
+
+        #sbatch funky junk
+        cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/splitChipRXBams_%s' % (uniqueID) + '_%j.out # Standard output and error log'
+        bashFile.write(cmd+'\n')
+        cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/splitChipRXBams_%s' % (uniqueID) + '_%j.err # Standard output and error log'
+        bashFile.write(cmd+'\n')
+        bashFile.write('\n\n\n')
+
+        
+
+        cmd = 'samtools view -h -o %s%s.sam %s%s.%s_%s.bwt2.sorted.bam' % (bam_dir,uniqueID,bam_dir,uniqueID,genome1,genome2)
+        bashFile.write(cmd+'\n')
+
+        outSam = '%s%s.sam' % (bam_dir,uniqueID)
+        split_cmd_1 = 'samtools view -S -F 4 %s | awk -vOFS="\t" '% (outSam)
+        split_cmd_2 = '{sindex=index($3,"_%s"); if(sindex >0) {$3=substr($3,1,sindex-1);  print $0 > "%s%s.%s.sam";} else { print $0 > "%s%s.%s.sam";}}' % (genome2,bam_dir,uniqueID,genome2,bam_dir,uniqueID,genome1)
+        cmd= split_cmd_1 + ' ' +'\'%s\'' % (split_cmd_2)
+        bashFile.write(cmd+'\n')
+
+        genome1_sam = '%s%s.%s.sam' % (bam_dir,uniqueID,genome1)
+        genome2_sam = '%s%s.%s.sam' % (bam_dir,uniqueID,genome2)
+        outbam1 = '%s%s.%s.bam' % (bam_dir,uniqueID,genome1)
+        outbam2 = '%s%s.%s.bam' % (bam_dir,uniqueID,genome2)
+        cmd1 = 'cat %s %s | samtools view -bS - > %s' % (header1,genome1_sam, outbam1)
+        cmd2 = 'cat %s %s | samtools view -bS - > %s' % (header2,genome2_sam, outbam2)
+        bashFile.write(cmd1 + '\n' + cmd2 + '\n\n')
+
+        cmd = 'samtools sort \'%s\' \'%s%s.%s.sorted\''  % (outbam1,bam_dir,uniqueID,genome1)
+        bashFile.write(cmd + '\n')
+        cmd = 'samtools sort \'%s\' \'%s%s.%s.sorted\''  % (outbam2,bam_dir,uniqueID,genome2)
+        bashFile.write(cmd + '\n')
+        cmd = 'samtools index %s%s.%s.sorted.bam' % (bam_dir,uniqueID,genome1)
+        bashFile.write(cmd + '\n')
+        cmd = 'samtools index %s%s.%s.sorted.bam' % (bam_dir,uniqueID,genome2)
+        bashFile.write(cmd + '\n')
+
+        bashFile.close()
+
+
+#===========================================================================
+#=========================ChIP RX SCALE FACTORS=============================
+#===========================================================================
+
+
+
+
+def writeScaleFactors(dataFile,namesList=[],output='',genome1='',genome2=''):
+
+    '''
+    creates a table of scale factors based on the rx genome read depth
+    '''
+
+    #first set up the output folder
+    #rpm scale factor is what the rpm/bp should be MULTIPLIED by
+    #mouse mapped reads give the denominator for what raw r/bp should be divided by
+    genome1_map_string = '%s_MAPPED_READS' % (genome1)
+    genome2_map_string = '%s_MAPPED_READS' % (genome2)   
+    outputTable = [['NAME',genome1_map_string,genome2_map_string,'RPM_SCALE_FACTOR']]
+
+
+    dataDict=loadDataTable(dataFile)
+    if len(namesList) == 0:
+        namesList = [name for name in dataDict.keys()]
+    namesList.sort()
+    print('scaling the following datasets')
+
+
+    for name in namesList:
+
+        print('WORKING ON %s' % (name))
+        bam_path = dataDict[name]['bam']
+        bam = utils.Bam(bam_path)
+        bam_mmr = float(bam.getTotalReads())/1000000
+        scale_path = string.replace(bam_path,genome1,genome2)
+        scaleBam = utils.Bam(scale_path)
+        scale_mmr = float(scaleBam.getTotalReads())/1000000
+        print(bam_path)
+        print(bam_mmr)
+        print(scale_path)
+        print(scale_mmr)
+        rpm_scale = bam_mmr/scale_mmr
+        scale_line = [bam_mmr,scale_mmr,rpm_scale]
+        scale_line = [round(x,4) for x in scale_line]
+        outputTable.append([name] + scale_line)
+
+    if len(output) == 0:
+        return outputTable
+    else:
+        utils.unParseTable(outputTable,output,'\t')
+
+
+
 
 
 
@@ -1221,7 +1530,124 @@ def callMacs(dataFile,macsFolder,namesList = [],overwrite=False,pvalue='1e-9',us
 
 
 
+def callMacsSlurm(dataFile,macsFolder,namesList = [],overwrite=False,pvalue='1e-9',useBackground =True,launch=True):
 
+    '''
+    calls the macs error model
+    '''
+    dataDict = loadDataTable(dataFile)
+
+    if macsFolder[-1] != '/':
+        macsFolder+='/'
+    formatFolder(macsFolder,True)
+
+    #if no names are given, process all the data
+    if len(namesList) == 0:
+
+        namesList = dataDict.keys()
+
+
+    for name in namesList:
+
+        #skip if a background set
+        if useBackground and string.upper(dataDict[name]['background']) == 'NONE':
+            continue
+
+        #check for the bam
+        try:
+            bam = open(dataDict[name]['bam'],'r')
+            hasBam = True
+        except IOError:
+            hasBam = False
+
+        #check for background
+        try:
+            backgroundName = dataDict[name]['background']
+            backbroundBam = open(dataDict[backgroundName]['bam'],'r')
+            hasBackground = True
+        except (IOError, KeyError) as e:
+            hasBackground = False
+
+        if not hasBam:
+            print('no bam found for %s. macs not called' % (name))
+            continue
+
+        if useBackground and hasBackground == False:
+            print('no background bam %s found for dataset %s. macs not called' % (backgroundName,name))
+            continue
+        #make a new folder for every dataset
+        outdir = macsFolder+name
+        #print(outdir)
+        try:
+            foo = os.listdir(outdir)
+            print('am i checking directory')
+            print(foo)
+            if not overwrite:
+                print('MACS output already exists for %s. OVERWRITE = FALSE' % (name))
+                continue
+
+        except OSError:
+            print('am i being run')
+            os.system('mkdir %s' % (outdir))
+
+        os.chdir(outdir)
+        #create a bashfile in the outdir
+        #that has the name of the dataset which is a parameter
+        bashFileName = '%s/macs14_%s.sh' %(outdir,name)
+        bashFile = open(bashFileName,'w')
+        #shebang
+        bashFile.write('#!/usr/bin/bash\n')
+        #write the bash cmd w/ any appropriate slurmy slurm stuff
+        #get a time stamp
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%Hh%Mm%Ss')
+        cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/macs_%s_%s' % (name,timestamp) + '_%j.out # Standard output and error log'
+        bashFile.write(cmd+'\n')
+        cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/macs_%s_%s' % (name,timestamp) + '_%j.err # Standard output and error log'
+        bashFile.write(cmd+'\n')
+
+        cmd = 'pwd; hostname; date'
+        bashFile.write(cmd+'\n\n\n\n')
+
+        genome = dataDict[name]['genome']
+        #print('USING %s FOR THE GENOME' % genome)
+        if useBackground == True:
+            bamFile = dataDict[name]['bam']
+            backgroundName =  dataDict[name]['background']
+            backgroundBamFile = dataDict[backgroundName]['bam']
+            if string.upper(genome[0:2]) == 'HG':
+                cmd = "macs14 -t %s -c %s -f BAM -g hs -n %s -p %s -w -S --space=50" % (bamFile,backgroundBamFile,name,pvalue)
+            elif string.upper(genome[0:2]) == 'MM':
+                cmd = "macs14 -t %s -c %s -f BAM -g mm -n %s -p %s -w -S --space=50" % (bamFile,backgroundBamFile,name,pvalue)
+            elif string.upper(genome[0:2]) == 'RN':
+                cmd = "macs14 -t %s -c %s -f BAM -g 2000000000 -n %s -p %s -w -S --space=50" % (bamFile,backgroundBamFile,name,pvalue)
+
+            elif string.upper(genome[0:2]) == 'DA':
+                cmd = "macs14 -t %s -c %s -f BAM -g 1000000000 -n %s -p %s -w -S --space=50" % (bamFile,backgroundBamFile,name,pvalue)
+
+        if useBackground == False:
+            bamFile = dataDict[name]['bam']
+
+            if string.upper(genome[0:2]) == 'HG':
+                cmd = "macs14 -t %s -f BAM -g hs -n %s -p %s -w -S --space=50" % (bamFile,name,pvalue)
+            elif string.upper(genome[0:2]) == 'MM':
+                cmd = "macs14 -t %s -f BAM -g mm -n %s -p %s -w -S --space=50" % (bamFile,name,pvalue)
+            elif string.upper(genome[0:2]) == 'RN':
+                cmd = "macs14 -t %s -f BAM -g 2000000000 -n %s -p %s -w -S --space=50" % (bamFile,name,pvalue)
+            elif string.upper(genome[0:2]) == 'DA':
+                cmd = "macs14 -t %s -f BAM -g 1000000000 -n %s -p %s -w -S --space=50" % (bamFile,name,pvalue)
+
+        print(cmd)
+        #bashFile.write('sbatch ' + cmd)
+        bashFile.write(cmd)
+        bashFile.close()
+        print('bash file: %s' % (bashFileName))
+        #return the path to teh bash file and launch if you want
+
+        if launch == True:
+            print('I AM LAUNCHING JOB')
+            os.system('sbatch -n 2 --mem 32768 %s' %(bashFileName))
+        #return the path to teh bash file and launch if you want
 
 
 
@@ -1454,6 +1880,48 @@ def formatMacsOutput(dataFile,macsFolder,macsEnrichedFolder,wiggleFolder,wigLink
         
 
     unParseTable(newDataTable,dataFile,'\t')
+
+
+
+
+#==========================================================================
+#=================OVERALL WRAPPER FOR RUNNING MACS=========================
+#==========================================================================
+
+
+
+
+def run_macs(data_file,projectFolder,macsFolder,macsEnrichedFolder,wiggleFolder,useBackground=True):
+    dataDict = loadDataTable(data_file)
+    namesList = [name for name in dataDict.keys() if name.upper().count('WCE') ==0 and name.upper().count('INPUT') == 0]
+    namesList.sort()
+    print(namesList)
+    callMacs(data_file,macsFolder,namesList,False,'1e-9',useBackground)
+    os.chdir(projectFolder) # the silly call macs script has to change into the output dir
+    #so this takes us back to the project folder
+
+    #to check for completeness, we will try to find all of the peak files
+    peak_calling_done = False
+    while not peak_calling_done:
+        dataDict = loadDataTable(data_file)
+        namesList = [name for name in dataDict.keys() if name.upper().count('WCE') ==0 and name.upper().count('INPUT') == 0]
+        for name in namesList:
+            peak_path = '%s%s/%s_summits.bed' % (macsFolder,name,name)
+            print('searching for %s' % (peak_path))
+            if utils.checkOutput(peak_path,1,180):
+                peak_calling_done =True
+                print('found %s' % (peak_path))
+                continue
+            else:
+                print('Error: peak calling timed out')
+                sys.exit()
+    
+    #now format the macs output
+    print('formatting macs output')
+    dataDict = loadDataTable(data_file)
+    namesList = [name for name in dataDict.keys() if name.upper().count('WCE') ==0 and name.upper().count('INPUT') == 0]
+    formatMacsOutput(data_file,macsFolder,macsEnrichedFolder,wiggleFolder,'',useBackground)
+    print('Finished running Macs 1.4.2')
 
 
 
@@ -1819,13 +2287,14 @@ def mapEnrichedToGFF(dataFile,setName,gffList,cellTypeList,enrichedFolder,mapped
         if len(namesList) == 0:
             namesList = dataDict.keys()
         for name in namesList:
-
             #check to make sure in the right celltype
             #also make sure to not process WCEs
             if useBackground and dataDict[name]['background'] == 'NONE':
                 continue
             cellName = name.split('_')[0]
             if macs == True:
+                print(name)
+                print(dataDict[name]['enrichedMacs'])
                 if cellTypeList.count(cellName) == 1 and dataDict[name]['enrichedMacs'] != 'NONE':
                     cellTypeNameList.append(name)
 
@@ -1861,10 +2330,9 @@ def mapEnrichedToGFF(dataFile,setName,gffList,cellTypeList,enrichedFolder,mapped
                 else:
                     mappedGFF[i+1].append(0)
 
-
-        unParseTable(mappedGFF,outdir+gffName+'_'+setName+'.txt','\t')
-
-
+    out_path = outdir+gffName+'_'+setName+'.txt'
+    unParseTable(mappedGFF,out_path,'\t')
+    return out_path
 
 
 
@@ -1932,8 +2400,8 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                 cmd1 = "python %s/bamToGFF_turbo.py -e %s -m %s -b %s -i %s -o %s" % (whereAmI,extension,nBin,fullBamFile,gffFile,outFile)
                 if rpm:
                     cmd1 += ' -r'
-                cmd1 += ' &'
-                print cmd1
+                #cmd1 += ' &'
+                print(cmd1)
                 os.system(cmd1)
 
             else:
@@ -1944,9 +2412,9 @@ def mapBams(dataFile,cellTypeList,gffList,mappedFolder,nBin = 200,overWrite =Fal
                     cmd1 = "python %s/bamToGFF_turbo.py -e %s -m %s -b %s -i %s -o %s" % (whereAmI,extension,nBin,fullBamFile,gffFile,outFile)
                     if rpm:
                         cmd1 += ' -r'
-                    cmd1 += ' &'
+                    #cmd1 += ' &'
 
-                    print cmd1
+                    print(cmd1)
                     os.system(cmd1)
 
 
@@ -2213,7 +2681,49 @@ def makeSignalTable(dataFile,gffFile,mappedFolder,namesList = [],medianNorm=Fals
         unParseTable(signalTable,output,'\t')
         return signalTable
 
+#==========================================================================
+#============================MAPPING WRAPPER===============================
+#==========================================================================
 
+def map_regions(dataFile,gffList,mappedFolder,signalFolder,names_list=[],medianNorm=False,output='',extendReadsTo=200):
+
+    '''
+    making a normalized binding signal table at all regions
+    '''
+    
+    #set up a list to return all signal tables made
+    signal_table_list = []
+    #since each bam has different read lengths, important to carefully normalize quantification
+    dataDict = loadDataTable(dataFile)
+    dataFile_name = dataFile.split('/')[-1].split('.')[0]
+
+    if len(names_list) == 0:
+        names_list = dataDict.keys()
+    names_list.sort()
+    
+    for name in names_list:
+        bam = Bam(dataDict[name]['bam'])
+        read_length = bam.getReadLengths()[0]
+        if int(extendReadsTo) < read_length:
+            print('Error: desired overall read extension %s is less than read length %s' % (extendReadsTo,read_length))
+            sys.exit()
+        bam_extension = int(extendReadsTo)-read_length
+        print('For dataset %s using an extension of %s' % (name,bam_extension))
+        mapBamsBatch(dataFile,gffList,mappedFolder,overWrite =False,namesList = [name],extension=bam_extension,rpm=True)
+
+    #want a signal table of all datasets to each gff
+    print('Writing signal tables for each gff:')
+    for gffFile in gffList:
+        gffName = gffFile.split('/')[-1].split('.')[0]
+        if len(output) == 0:
+            signal_table_path = '%s%s_%s_SIGNAL.txt' % (signalFolder,gffName,dataFile_name)
+        else:
+            signal_table_path = output
+        print(signal_table_path)
+        makeSignalTable(dataFile,gffFile,mappedFolder,names_list,medianNorm,output =signal_table_path)
+        signal_table_list.append(signal_table_path)
+
+    return signal_table_list
 
 #==========================================================================
 #===================MAKING GFF LISTS=======================================
@@ -2259,7 +2769,7 @@ def makeGFFListFile(mappedEnrichedFile,setList,output,annotFile=''):
             
             bindingVector = [int(line[x]) for x in andColumns]
             if refID == "NM_133941":
-                print bindingVector
+                print(bindingVector)
             #print(bindingVector)
             if bindingVector.count(1) == len(bindingVector):
                 if len(annotFile) >0 :
@@ -2343,10 +2853,11 @@ def callGenePlot(dataFile,geneID,plotName,annotFile,namesList,outputFolder,regio
 #========================BATCH PLOTTING REGIONS============================
 #==========================================================================
 
-def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=True,bed ='',plotType= 'MULTIPLE',extension=200,multiPage = False,debug=False,nameString = '',rpm=True,rxGenome = ''):
+def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=True,bed ='',plotType= 'MULTIPLE',extension=200,multiPage = False,debug=False,nameString = '',rpm=True,rxGenome = '',scaleFactorString =''):
 
     '''
     batch plots all regions in a gff
+    if using scale factor, provide the multiplicative scale factors which is 1/rxMMR
     '''
     plotType = string.upper(plotType)
     dataDict = loadDataTable(dataFile)
@@ -2358,7 +2869,7 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
 
     genomeList = [string.lower(dataDict[x]['genome']) for x in namesList]
     if len(uniquify(genomeList)) != 1:
-        print "ERROR: CANNOT PLOT DATA FROM MULTIPLE GENOMES"
+        print("ERROR: CANNOT PLOT DATA FROM MULTIPLE GENOMES")
         sys.exit()
     else:
         genome = genomeList[0]
@@ -2372,7 +2883,7 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
         foo = open(inputFile,'r')
         foo.close()
     except IOError:
-        print "ERROR: INPUT FILE NOT READABLE"
+        print("ERROR: INPUT FILE NOT READABLE")
         sys.exit()
 
     #establish the output folder
@@ -2413,14 +2924,13 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
 
         scaleFactorString = string.join(scaleFactorList,',')
 
-            
-
-    os.chdir(pipelineFolder)
     cmd = 'python %sbamPlot_turbo.py -g %s -e %s -b %s -i %s -o %s -c %s -n %s -y %s -t %s -p %s' % (pipelineFolder,genome,extension,bamString,inputFile,outputFolder,colorString,nameString,yScale,title,plotType)
     #scale for RPM
     if rpm == True:
         cmd += ' -r'
-    if len(rxGenome) > 0:
+    if len(scaleFactorString) > 0:
+        if rpm == True:
+            print('warning, rpm flag and scale factoring do not mix well')
         cmd += ' --scale %s' % (scaleFactorString)
 
     if len(bed) > 0:
@@ -2431,9 +2941,92 @@ def callBatchPlot(dataFile,inputFile,plotName,outputFolder,namesList=[],uniform=
         cmd += ' --save-temp'
     #cmd += ' &'
 
-    print cmd
+    print(cmd)
     os.system(cmd)
     return cmd
+
+
+
+
+#=======================================================================
+#=======================Plotting TF Motif Corr Heat Maps================
+#=======================================================================
+
+def plotCRCCorrMaps(analysis_name,motifBedDir,tf_list_path='',window=50):
+    list_files=os.listdir(motifBedDir)
+    allLoci=[]
+    motif_beds=[]
+    for f in list_files:
+        fEnd=f.split('.')[-1]
+        if fEnd == 'bed':
+            motif_beds.append(f)
+
+    print(len(motif_beds))
+
+    temp_dir = '%stmp/' % (motifBedDir)
+    figures_dir = '%sfigures/' % (motifBedDir)
+    tables_dir = '%stables/' % (motifBedDir)
+    
+    #making folders
+    folderList = [temp_dir,figures_dir,tables_dir]
+
+    for folder in folderList:
+        formatFolder(folder,True)
+
+    print(tf_list_path)
+    print(len(tf_list_path))
+
+    tf_list=[]
+    if len(tf_list_path)>0:
+        tf_table=utils.parseTable(tf_list_path,'\t')
+        for tf in tf_table:
+            print(tf[0])
+            tf_list.append(tf[0].upper())
+        
+        print(tf_list)
+
+        tf_beds=[]
+        for bed in motif_beds:
+            tf_name=bed.split('_')[0]
+            if tf_name in tf_list:
+                tf_beds.append(bed)
+                print(tf_beds)
+            
+        motif_beds=tf_beds
+
+
+
+    #remove 'track' line from crc bed files and write to tmp file for Rscript use
+    for bed in motif_beds:
+        bed_path = '%s%s' % (motifBedDir,bed)
+        bed_table = utils.parseTable(bed_path,'\t')
+        new_table=[]
+        for line in bed_table[1:]:
+            new_table.append(line)
+        tmp_path = '%s%s' % (temp_dir,bed)
+        if len(new_table) > 0:
+            utils.unParseTable(new_table,tmp_path,'\t')
+
+    for bed in motif_beds:
+        TF_name = bed.split('_')[0]
+        collection = utils.importBoundRegion('%s%s' %(motifBedDir,bed),TF_name)
+
+        allLoci += collection.getLoci()
+
+
+    #make stitched bed file
+    giant_collection = utils.LocusCollection(allLoci,50)
+    stitched_collection = giant_collection.stitchCollection(stitchWindow=50)
+    new_bed = utils.locusCollectionToBed(stitched_collection)
+    utils.unParseTable(new_bed,'%s%s%s_stitched_bed.bed' % (temp_dir,str(window),analysis_name),'\t')
+    utils.unParseTable(new_bed,'%s%s%s_stitched_bed.bed' % (tables_dir,str(window),analysis_name),'\t')
+
+
+    #Call Rscript to create heatmap figures
+
+    cmd='/storage/cylin/anaconda3/envs/r32_py27/bin/Rscript %splotMotifCorrMatrix.R %s %s %s' % (pipelineFolder,motifBedDir,analysis_name,str(window))
+    os.system(cmd)
+
 
 #-------------------------------------------------------------------------#
 #                                                                         #
@@ -2641,7 +3234,7 @@ def callHeatPlotOrdered(dataFile,gffFile,namesList,orderByName,geneListFile,outp
         color = dataDict[name]['color']
         output = outputFolder + '%s_%s_%s_order.png' % (gffName,name,orderByName)
 
-        cmd = "R --no-save %s %s %s %s %s" % (referenceMappedGFF,mappedGFF,color,output,geneListFile)
+        cmd = "Rscript %sheatMapOrdered.R %s %s %s %s %s" % (pipelineFolder,referenceMappedGFF,mappedGFF,color,output,geneListFile)
         if relative:
             cmd += ' 1'
         else:
@@ -2650,8 +3243,8 @@ def callHeatPlotOrdered(dataFile,gffFile,namesList,orderByName,geneListFile,outp
         #now add the background stuff
         cmd += ' %s' % (backgroundGFF)
 
-        #now finish the command
-        cmd += ' < %s/heatMapOrdered.R &' % (whereAmI)
+
+
 
         print(cmd)
         os.system(cmd)
@@ -2670,8 +3263,9 @@ def callRose(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = []
     '''
 
     dataDict = loadDataTable(dataFile)
-    
-
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+    print(namesList)
     #a timestamp to name this pipeline batch of files
     timeStamp =datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     #a random integer ticker to help name files
@@ -2728,14 +3322,17 @@ def callRose(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = []
 
 
 
-def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask='',useBackground=True):
+def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask='',useBackground=True,py27_path =''):
 
     '''
     calls rose w/ standard parameters
     '''
+    if py27_path =='':
+        py27_path = 'python'
 
     dataDict = loadDataTable(dataFile)
-    
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
 
     #a timestamp to name this pipeline batch of files
     timeStamp =datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -2747,7 +3344,7 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
     if len(bashFileName) == 0:
         bashFileName = '%srose_%s_%s.sh' % (parentFolder,timeStamp,randTicker)
     bashFile = open(bashFileName,'w')
-    bashFile.write("cd %s" % (whereAmI))
+    bashFile.write("cd %s" % (pipelineFolder))
     bashFile.write('\n')
 
     mapString = [dataDict[name]['bam'] for name in extraMap]
@@ -2758,6 +3355,100 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
         genome = dataDict[name]['genome']
         bamFile = dataDict[name]['bam']
         
+        backgroundName = dataDict[name]['background']
+        if useBackground and dataDict.has_key(backgroundName):
+            backgroundBamFile = dataDict[backgroundName]['bam']
+            hasBackground = True
+        else:
+            hasBackground = False
+
+        if len(inputFile) == 0:
+            macsFile = "%s%s" % (macsEnrichedFolder,dataDict[name]['enrichedMacs'])
+        else:
+            macsFile = inputFile
+        outputFolder = "%s%s_ROSE" % (parentFolder,name)
+        print(name)
+        bashFile.write('#running ROSE2 on %s\n' % (name))
+        roseCmd = '%s ROSE2_main.py -g %s -i %s -r %s -o %s -t %s' % (py27_path,genome,macsFile,bamFile,outputFolder,tss)
+
+        if len(str(stitch)) > 0:
+            roseCmd += ' -s %s' % (stitch)
+        if hasBackground:
+            roseCmd +=' -c %s' % (backgroundBamFile)
+        if len(mapString) > 0:
+            roseCmd +=' -b %s' % (mapString)
+        if len(mask) >0:
+            roseCmd += ' --mask %s' % (mask)
+
+        bashFile.write(roseCmd)
+        bashFile.write('\n\n')
+
+
+    bashFile.close()
+
+    print ('Wrote rose commands to %s' % (bashFileName))
+    return bashFileName
+
+
+
+def callRose2Slurm(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [],inputFile='',tss=2500,stitch='',bashFileName ='',mask='',useBackground=True,projectName=''):
+
+    '''
+    calls rose w/ standard parameters
+    '''
+
+    #load the data dict
+    dataDict = loadDataTable(dataFile)
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+
+
+    #for recording purposes
+    #first set the project name
+    if len(projectName) == 0:
+        #draw from the data file
+        projectName = '%s_ROSE2' % (dataFile.split('/')[-1].split('.txt')[0])
+
+    #a timestamp to name this pipeline batch of files
+    timeStamp =datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    #a random integer ticker to help name files
+    randTicker = random.randint(0,10000)
+
+    formatFolder(parentFolder,True)
+
+    if len(bashFileName) == 0:
+        bashFileName = '%srose_%s_%s.sh' % (parentFolder,timeStamp,randTicker)
+    bashFile = open(bashFileName,'w')
+
+    ts = time.time()
+    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%Hh%Mm%Ss')
+    cmd = '#!/usr/bin/bash'
+    bashFile.write(cmd+'\n')
+    cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/ROSE2_%s_%s' % (projectName,timestamp) + '_%j.out # Standard output and error log'
+    bashFile.write(cmd+'\n')
+    cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/ROSE2_%s_%s' % (projectName,timestamp) + '_%j.err # Standard output and error log'
+    bashFile.write(cmd+'\n')
+    cmd = '#SBATCH -n 8'
+    bashFile.write(cmd+'\n')
+    cmd = '#SBATCH --mem 32768'
+    bashFile.write(cmd+'\n')
+
+
+    cmd = 'pwd; hostname; date'
+    bashFile.write(cmd+'\n\n\n\n')
+
+
+    bashFile.write("cd %s" % (whereAmI))
+    bashFile.write('\n')
+
+    mapString = [dataDict[name]['bam'] for name in extraMap]
+    mapString = string.join(mapString,',')
+
+    for name in namesList:
+        #print name
+        genome = dataDict[name]['genome']
+        bamFile = dataDict[name]['bam']
+
         backgroundName = dataDict[name]['background']
         if useBackground and dataDict.has_key(backgroundName):
             backgroundBamFile = dataDict[backgroundName]['bam']
@@ -2782,7 +3473,9 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
         if len(mask) >0:
             roseCmd += ' --mask %s' % (mask)
 
-        roseCmd += ' &'
+        roseCmd += ''
+
+
         bashFile.write(roseCmd)
         bashFile.write('\n')
 
@@ -2793,6 +3486,53 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
     return bashFileName
 
 
+#-------------------------------------------------------------------------#
+#                                                                         #
+#                               CRC TOOLS                                 #
+#                                                                         #
+#-------------------------------------------------------------------------#
+
+
+
+def call_crc(analysis_name,enhancer_path,subpeak_path,activity_path,genome,crc_folder='',args ='',py27_path =''):
+
+    '''
+    runs crc
+    '''
+    
+    #if no python path is provide use default python
+    if py27_path == '':
+        py27_path = 'python'
+
+    if len(crc_folder) == 0:
+        
+        crc_folder = utils.formatFolder('./crc',True)
+    else:
+        crc_folder = utils.formatFolder(crc_folder,True)
+
+
+    output_folder = utils.formatFolder('%s%s' % (crc_folder,analysis_name),True)
+
+    crc_cmd = '%s %scrc/CRC3.py -e %s -g %s -o %s -n %s -s %s -a %s' % (py27_path,pipelineFolder,enhancer_path,genome,output_folder,analysis_name,subpeak_path,activity_path)
+    if len(args) > 0:
+        if args[0] != ' ': #adds an extra space
+            args = ' ' + args
+
+        crc_cmd += args
+    crc_bash_path = '%s%s_crc.sh' % (crc_folder,analysis_name)
+
+    crc_bash = open(crc_bash_path,'w')
+    crc_bash.write('#!/usr/bin/bash\n\n')
+
+    crc_bash.write('#running crc for %s\n' % (analysis_name))
+    crc_bash.write(crc_cmd +'\n')
+    crc_bash.close()
+
+    print('wrote crc command for %s to %s' % (analysis_name,crc_bash_path))
+    return crc_bash_path
+
+
+
 
 
 #-------------------------------------------------------------------------#
@@ -2801,10 +3541,123 @@ def callRose2(dataFile,macsEnrichedFolder,parentFolder,namesList=[],extraMap = [
 #                                                                         #
 #-------------------------------------------------------------------------#
 
+def mapHisat(dataFile,namesList=[],projectFolder='',useSRA=False,pCount=16,Launch=True):
+    
+   # '''
+   # maps using hisat2 if useSRA is flagged will try to extract an SRA ID from the fastq path and call directly
+   # '''
+   #load the datasets
+    dataDict = loadDataTable(dataFile)
+
+    #loading the datasets we want to process
+    if len(namesList) == 0:
+        namesList = dataDict.keys()
+
+    #want to write to the bam folder which we can deduce from the genomes of the datasets
+    #we want to make sure everyone has the same genome or else this is scary
+
+    genomeList = [dataDict[name]['genome'] for name in dataDict.keys()]
+
+    if len(utils.uniquify(genomeList)) > 1:
+        print('OH HECK NO YOU CANT ALIGN MULTIPLE GENOMES THAT WOULD BE STUPID')
+        sys.exit()
+
+    genome = string.upper(genomeList[0])
+
+    bamFolder = utils.formatFolder(dataDict[namesList[0]]['folder'])
+    hisatIndexDictionary = {'HG38':'/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg38/Sequence/Hisat2Index/hg38',
+                           'MM9': '/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm9/Sequence/Hisat2Index/mm9',
+                           'RN6_ERCC': '/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Hisat2Index_ERCC/rn6_ercc',
+                           'RN6': '/storage/cylin/grail/genomes/Rattus_norvegicus/UCSC/rn6/Sequence/Hisat2Index/rn6',
+                           'HG19_ERCC': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Hisat2Index_ERCC/hg19_ercc',
+                           'HG19': '/storage/cylin/grail/genomes/Homo_sapiens/UCSC/hg19/Sequence/Hisat2Index/hg19', 
+                           'MM10': '/storage/cylin/grail/genomes/Mus_musculus/UCSC/mm10/Sequence/Hisat2Index/mm10' 
+                          }
+    
+    hisatIndex = hisatIndexDictionary[genome]
+
+
+  #now we can loop through the datasets
+    for name in namesList:
+        bashFilePath = '%s%s_HISAT2' % (projectFolder,name)
+        bashFile = open(bashFilePath,'w')
+        bashFile.write('#!/usr/bin/bash\n') #shebang line plus end of line characters
+        bashFile.write('\n\n\n')
+       
+        #first write a line to cd into the bam folder
+        bashFile.write('cd %s\n' %(bamFolder))
+        
+        uniqueID = dataDict[name]['uniqueID']
+        ts = time.time()
+        timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%Hh%Mm%Ss')
+        cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/hisat2_%s_%s' % (name,timestamp) + '_%j.out # Standard output and error log'
+        bashFile.write(cmd+'\n')
+        cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/hisat2_%s_%s' % (name,timestamp) + '_%j.err # Standard output and error log'
+        bashFile.write(cmd+'\n')
+
+        cmd = 'pwd; hostname; date'
+        bashFile.write(cmd+'\n')
+        bashFile.write('\n\n\n')
+
+        bashFile.write('#===================\n')
+        bashFile.write('#PROCESSING %s\n' %(name))
+        bashFile.write('echo "processing %s"\n' % (name))
+
+        outputSam = '%s%s.%s.sam' % (bamFolder,uniqueID,genome)
+        outputBam = '%s%s.%s.bam' % (bamFolder,uniqueID,genome)
+        outputSortedBam = '%s%s.%s.sorted' % (bamFolder,uniqueID,genome)
+
+        if useSRA:
+            srrID = dataDict[name]['fastq'].split('/')[-2]
+            alignCmd = 'hisat2 -p %s --no-unal -x %s --sra-acc %s -S %s' % (pCount,hisatIndex,srrID,outputSam)
+        else:
+            #check for paired end
+            fastqPath = dataDict[name]['fastq']
+            if fastqPath.count('::') == 1:
+                #this is paried end
+                [fastqPath_1,fastqPath_2] = fastqPath.split('::')
+                alignCmd = 'hisat2 -p %s --no-unal -x %s -1 %s -2 %s -S %s' % (pCount,hisatIndex,fastqPath_1,fastqPath_2,outputSam)
+            else:
+                alignCmd = 'hisat2 -p %s --no-unal -x %s -U %s -S %s' % (pCount,hisatIndex,fastqPath,outputSam)
+
+        bashFile.write(alignCmd)
+        bashFile.write('\n')
+
+      # now convert the sam to a bam
+        generateBamCmd = '/usr/bin/samtools view -bS %s > %s' % (outputSam,outputBam)
+        bashFile.write(generateBamCmd)
+        bashFile.write('\n')
+
+      # now we need to sort the bam
+        sortBamCmd = '/usr/bin/samtools sort %s %s' % (outputBam,outputSortedBam)
+        bashFile.write(sortBamCmd)
+        bashFile.write('\n')
+
+      # now we need to index the bam
+        indexBamCmd = '/usr/bin/samtools index %s.bam' % (outputSortedBam)
+        bashFile.write(indexBamCmd)
+        bashFile.write('\n')
+
+      #now we need to delete the sam
+        deleteSamCmd = 'rm %s' % (outputSam)
+        bashFile.write(deleteSamCmd)
+        bashFile.write('\n')
+
+        #now we need to delete the unsorted bam
+        deleteBamCmd = 'rm %s' % (outputBam)
+        bashFile.write(deleteBamCmd)
+        bashFile.write('\n')
+        bashFile.write('\n\n\n')
+        bashFile.close()
+        if Launch:
+            time.sleep(1)
+            cmd = "sbatch -n %s --mem 32768 %s &" % (pCount,bashFilePath)
+            os.system(cmd)
 
 
 
-def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
+
+def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = '',useERCC = True):
 
     '''
     call cuffquant on each bam individually
@@ -2850,6 +3703,13 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
                 if '-_.'.count(coreName[-1]) == 1:  #get rid of any separators for a core name
                     coreName = coreName[:-1]
             namesStringList.append(coreName)
+        print('Using the following as group names')
+        print(namesStringList)
+        if len(utils.uniquify(namesStringList)) != len(groupList):
+            print('Error: only found %s unique group strings to go with %s groups' % (len(utils.uniquify(namesStringList)),len(groupList)))
+
+            sys.exit()
+                      
             groupTicker+=1
         namesString = ','.join(namesStringList)
             
@@ -2876,7 +3736,7 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
     cuffquantList = [] # create a list to store cuffquant .cxb outputs so we can check for completeness
     for name in namesList:
         bamFileName = dataDict[name]['bam']
-        bashFile.write('cuffquant -p 4 -o %s%s/ %s %s &\n' % (cufflinksFolder,name,gtfFile,bamFileName))
+        bashFile.write('cuffquant -p 4 -o %s%s/ %s %s --library-type fr-firststrand\n' % (cufflinksFolder,name,gtfFile,bamFileName))
         cuffquantList.append('%s%s/abundances.cxb' % (cufflinksFolder,name))
 
 
@@ -2910,6 +3770,148 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
     bashFile.write("\necho 'running cuffnorm command'\n")
 
     
+    cuffNormCmd = 'cuffnorm -p 4 -o %s%s_cuffnorm/ -L %s %s %s --library-type fr-firststrand\n' % (cufflinksFolder,analysisName,namesString,gtfFile,cxbString)
+
+    bashFile.write(cuffNormCmd + '\n')
+
+
+    #now we'll want to pipe the output into the R script for RNA_Seq normalization
+    geneFPKMFile = '%s%s_cuffnorm/genes.fpkm_table' % (cufflinksFolder,analysisName)
+
+
+    if useERCC:
+        rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s TRUE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
+    else:
+        rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s FALSE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
+    bashFile.write(rCmd)
+    bashFile.close()
+
+
+
+
+def makeCuffTableSlurm(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bashFileName = ''):
+
+    '''
+    call cuffquant on each bam individually
+    and then string the cbx files into cuffnorm
+    groupList = [['A_1','A_2'],['B_1','B_2']]
+    '''
+
+    def long_substr(data):
+        '''
+        helper function to find longest substring for group naming
+        '''
+        substr = ''
+        if len(data) > 1 and len(data[0]) > 0:
+            for i in range(len(data[0])):
+                for j in range(len(data[0])-i+1):
+                    if j > len(substr) and all(data[0][i:i+j] in x for x in data):
+                        substr = data[0][i:i+j]
+        return substr
+
+    dataDict = loadDataTable(dataFile)
+
+    #if no grouplist is given
+    #run every dataset as a single group
+    #for now assumes that every dataset given is RNA Seq
+    if len(groupList) == 0:
+        namesList = dataDict.keys()
+        namesList.sort()
+        groupList = [[x] for x in namesList]
+        namesString = ','.join(namesList)
+
+    else:
+        #only a single name per group
+        namesList =[]
+        namesStringList = []
+        groupTicker = 1
+        for group in groupList:
+
+            namesList+=group
+            coreName = long_substr(group)
+            if len(coreName) ==0:
+                coreName = '%s_GROUP_%s' % (analysisName,groupTicker)
+            else:
+                if '-_.'.count(coreName[-1]) == 1:  #get rid of any separators for a core name
+                    coreName = coreName[:-1]
+            namesStringList.append(coreName)
+        print('Using the following as group names')
+        print(namesStringList)
+        if len(utils.uniquify(namesStringList)) != len(groupList):
+            print('Error: only found %s unique group strings to go with %s groups' % (len(utils.uniquify(namesStringList)),len(groupList)))
+            sys.exit()
+
+            groupTicker+=1
+        namesString = ','.join(namesStringList)
+
+    cufflinksFolder = formatFolder(cufflinksFolder,True)
+
+    #let's do this in bashfile format
+    if len(bashFileName) ==0:
+        bashFileName = '%scuffquant.sh' % (cufflinksFolder)
+
+
+    bashFile = open(bashFileName,'w')
+
+    bashFile.write('#!/usr/bin/bash\n')
+
+    ts = time.time()
+    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y%m%d_%Hh%Mm%Ss')
+    cmd = '#SBATCH --output=/storage/cylin/grail/slurm_out/cufflinks_%s_%s' % (analysisName,timestamp) + '_%j.out # Standard output and error log'
+    bashFile.write(cmd+'\n')
+    cmd = '#SBATCH -e /storage/cylin/grail/slurm_out/cufflinks_%s_%s' % (analysisName,timestamp) + '_%j.err # Standard output and error log'
+    bashFile.write(cmd+'\n')
+
+    cmd = 'pwd; hostname; date'
+    bashFile.write(cmd+'\n\n\n\n')
+
+
+    bashFile.write('cd %s\n\n' % (cufflinksFolder))
+
+    bashFile.write("echo 'making cuffquant folders'\n")
+
+    for name in namesList:
+        bashFile.write('mkdir %s\n' % (name))
+
+        bashFile.write("\necho 'calling cuffquant'\n")
+
+    cuffquantList = [] # create a list to store cuffquant .cxb outputs so we can check for completeness
+    for name in namesList:
+        bamFileName = dataDict[name]['bam']
+        bashFile.write('cuffquant -p 4 -o %s%s/ %s %s &\n' % (cufflinksFolder,name,gtfFile,bamFileName))
+        cuffquantList.append('%s%s/abundances.cxb' % (cufflinksFolder,name))
+
+
+    #if we want to have python run this as opposed to making a bash file
+    # #check for output
+    # for cuffquantFile in cuffquantList:
+
+    #     if checkOutput(cuffquantFile,5,60):
+    #         print "FOUND CUFFQUANT OUTPUT FOR %s" % (cuffquantFile)
+
+    #     else:
+
+
+    #now we want to string together all of the abundances.cxb files to run cuffnorm
+    #cuff norm gives you the opportunity to string together replicates
+    #gotta figure out the right way to designate sample groups
+
+    cxbList = []
+    for group in groupList:
+
+        groupString = ','.join(['%s%s/abundances.cxb' % (cufflinksFolder,name) for name in group])
+        cxbList.append(groupString)
+
+    cxbString = ' '.join(cxbList)
+
+    #set up the analysis output folders
+    cuffnormFolder = formatFolder('%s%s_cuffnorm' % (cufflinksFolder,analysisName),True)
+    rOutputFolder = formatFolder('%s%s_cuffnorm/output/' % (cufflinksFolder,analysisName),True)
+
+    #now run the cuffnorm
+    bashFile.write("\necho 'running cuffnorm command'\n")
+
+
     cuffNormCmd = 'cuffnorm -p 4 -o %s%s_cuffnorm/ -L %s %s %s\n' % (cufflinksFolder,analysisName,namesString,gtfFile,cxbString)
 
     bashFile.write(cuffNormCmd + '\n')
@@ -2919,8 +3921,9 @@ def makeCuffTable(dataFile,analysisName,gtfFile,cufflinksFolder,groupList=[],bas
     geneFPKMFile = '%s%s_cuffnorm/genes.fpkm_table' % (cufflinksFolder,analysisName)
 
 
-    
-    rCmd = '#R --no-save %s %s %s %s TRUE < %snormalizeRNASeq.R\n' % (geneFPKMFile,rOutputFolder,analysisName,namesString,pipelineFolder)
+
+
+    rCmd = '#Rscript %snormalizeRNASeq.R %s %s %s %s TRUE\n' % (pipelineFolder,geneFPKMFile,rOutputFolder,analysisName,namesString)
 
     bashFile.write(rCmd)
     bashFile.close()
@@ -4408,7 +5411,215 @@ def processGecko(dataFile,geckoFolder,namesList = [],overwrite=False,scoringMeth
 #     print(len(geneListFile))
 #     unParseTable(geneListFile,output,'')
 
+#==========================================================================
+#===================MAKE UCSC TRACKHUB FILES===============================
+#==========================================================================
 
+def makeTrackHub(analysis_name,project_folder,chrom_sizes, dataFileList=[], wiggle_dir='',web_dir='/storage/cylin/web/Lin_Lab_Track_Hubs/',hub_name='',hub_short_lab='',hub_long_lab='',EMAIL='',fileType='bigWig',col='0,0,0',scaled=False):
+    #dataFileList will take several data tables and use them to create a track hub. This will not include background samples, because they do not have wiggle files
+    #analysis_name is the name of your project
+    #wiggle_dir is the path to where the wiggle files for this analysis live; will default to '/storage/cylin/grail/projects/analysis_name/wiggles' if left blank
+    #chrom_sizes is a required file for wigToBigWig. You can make these by running fetchChromSizes on your assembly. These are also available for download from UCSC, too.
+    #web_dir is the path to the outward facing directory where your data will be accessible to the genome browser
+    #hub_name will default to the analysis name if left empty
+    #hub_short_lab is a short label description of the hub and defaults to the analysis name if left blank
+    #hub_long_lab is a long label description of the hub and will also default to the analysis name if left blank
+    #EMAIL is your e-mail address
+    #fileType is set to bigWig by default for this script, but trackhub supports several other file types. This can be updated in the future.
+    #col is the color of the tracks; default black. This can be edited on the UCSC genome browser as well
+
+
+    folderName = '{}{}'.format(
+    web_dir,
+    analysis_name
+    )
+
+    formatFolder(folderName,create=True)
+
+    group = web_dir.split('/')[2]
+    track_folder = web_dir.split('/web')[1]
+
+    urlBase = 'http://taco-wiki.grid.bcm.edu/'
+    if wiggle_dir == '':
+        wiggle_dir = project_folder+'wiggles/'
+
+    allData = []
+    bgNames = []
+
+    #creates a large list from all data files selected to create track hub; removes background samples
+    for file in dataFileList:
+        dataTable = utils.parseTable(file,'\t')
+        for line in dataTable[1:]:
+            allData.append(line)
+    print(allData)
     
+    line1 = allData[0]
+    genome = line1[2].lower()
+
+    genomeFolderName = '{}/{}'.format(
+        folderName,
+        genome
+        )
+
+    formatFolder(genomeFolderName,create=True)
+    if hub_name == '':
+        hub_name = analysis_name
+
+    hubTxt = '.hub.txt'
+    hubFileName = '{}/{}{}'.format(
+        folderName,
+        hub_name,
+        hubTxt
+        )
+    #This is the file you will link to the genome browser that points to the other files in your track hub configuration
+    hubFile = open(hubFileName,'w')
+    #This is the name of the hub
+    hub_line = '{} {}'.format(
+        'hub',
+        hub_name
+        )
+    hubFile.write(hub_line + '\n')
+
+    #this is a short label description of this hub
+    if hub_short_lab == '':
+        hub_short_lab_line = 'shortLabel ' + hub_name
+    else:
+        hub_short_lab_line = 'shortLabel ' + hub_short_lab
+    hubFile.write(hub_short_lab_line+'\n')
+
+    #this is a long label description of this hub
+    if hub_long_lab == '':
+        hub_long_lab_line = 'longLabel ' + hub_name
+    else:
+        hub_long_lab_line = 'longLabel ' + hub_long_lab
+    hubFile.write(hub_long_lab_line+'\n')
+
+    #points to genomes file
+    hubFile.write('genomesFile ' + analysis_name + '.genomes.txt' + '\n')
+
+    #this is the email for the person who set up this track hub
+    if EMAIL != '':
+        hubFile.write('email ' + EMAIL + '\n')
+    else:
+        EMAIL = 'email@bcm.edu'
+        hubFile.write('email ' + EMAIL + '\n')
+    
+    hubFile.close()
+
+    genomesFileName = folderName + '/' + analysis_name + '.genomes.txt'
+    print(genomesFileName)
+    #This is the file that includes all genomes used in this track hub
+    genomesFile = open(genomesFileName,'w')
+
+    genomesFile.write('genome ' + genome + '\n')
+    genomesFile.write('trackDb ' + genome+'/trackDb.txt' + '\n')
+
+    genomesFile.close()
+
+    #This is the trackDb file which contains information about the files you are going to actually be visualizing
+
+    trackDbFileName = genomeFolderName + '/trackDb.txt'
+
+    trackDbFile = open(trackDbFileName,'w')
+    
+    if scaled == True:
+        wig_str = '_scaled.wig.gz'
+    else:
+        wig_str = '_treat_afterfiting_all.wig.gz'
+
+    for line in allData:
+        name = line[3]
+        print('name: ' + name)
+        input_wig = wiggle_dir+ name + wig_str
+        print('input_wig: ' + input_wig)
+        bigwig_name = name + '.bw'
+        bigwig_out = '{}/{}'.format(
+            genomeFolderName,
+            bigwig_name
+            )
+        if os.path.isfile(input_wig) == True:
+            bw_cmd = '{} {} {} {}'.format(
+                'wigToBigWig -clip',
+                input_wig,
+                chrom_sizes,
+                bigwig_out
+                )
+        
+            os.system(bw_cmd)
+
+            trackDbFile.write('track ' + name + '\n')
+            URL = '{} {}{}{}{}/{}/{}'.format(
+                'bigDataUrl',
+                urlBase,
+                group,
+                track_folder,
+                analysis_name,
+                genome,
+                bigwig_name
+                )
+
+            trackDbFile.write(URL + '\n')
+            trackDbFile.write('shortLabel '+ name + '\n')
+            trackDbFile.write('longLabel '+ name + '\n')
+            trackDbFile.write('type '+ fileType + '\n')
+            trackDbFile.write('color ' + col + '\n\n')
+
+    trackDbFile.close()
+
+
+
+#==========================================================================
+#===============================GSEA ANALYSIS==============================
+#==========================================================================
+def wrapGSEA(gctPath,clsPath,sample_1,sample_2,analysis_name,output_folder,metric,gmxPath='',gseaPath='',launch=True):
+    '''
+    wraps GSEA, creates bash script, and sets up output folder
+    Metrics:
+        - metric possibilities include Signal2Noise, tTest, Ratio_of_Classes, Diff_of_Classes, log2_Ratio_of_Classes
+        - tTest metric requires multiple columns to work
+    .gct and .cls files are generated via the normalizeRNAseq.R script in the pipeline, but they can easily be generated.
+        GCT files:
+          http://software.broadinstitute.org/cancer/software/genepattern/file-formats-guide#GCT
+        CLS files:
+          http://software.broadinstitute.org/cancer/software/genepattern/file-formats-guide#CLS
+    Gene sets and .gmt files can be generated manually to inspect specific gene sets. The default is a curated gene set of all human genes.
+        GMT files:
+          http://software.broadinstitute.org/cancer/software/genepattern/file-formats-guide#GMT
+
+    IF YOU GET A STRANGE ERROR, MAKE SURE THE GENES IN YOUR GCT FILE ARE CAPITALIZED.
+    '''
+    if gmxPath=='':
+        #default curated gene set
+        gmxPath='/storage/cylin/grail/annotations/gsea/c2.all.v5.1.symbols.gmt'
+    if gseaPath=='':
+        #default gsea version
+        gseaPath = '/storage/cylin/home/cl6/gsea2-3.0_beta_2.jar'
+
+    #create and open bash file  
+    gseaBashFilePath = cls_path = '{}{}_gsea.sh'.format(output_folder,analysis_name)
+    gseaBashFile = open(gseaBashFilePath,'w')
+
+    #shebang
+    gseaBashFile.write('#!/usr/bin/bash\n\n')
+
+    gseaBashFile.write('#COMMAND LINE GSEA CALLS FOR {}\n\n'.format(analysis_name))
+
+    #point where the analysis will live
+    gseaOutputFolder = utils.formatFolder('{}{}_GSEA/'.format(output_folder,analysis_name),True)
+
+    #name report
+    rptLabel = '{}'.format(analysis_name)
+
+    #generate GSEA command
+    gseaCmd_all = 'java -Xmx4000m -cp {} xtools.gsea.Gsea -res {} -cls {}#{}_versus_{} -gmx {} -collapse false -mode Max_probe -norm meandiv -nperm 1000 -permute gene_set -rnd_type no_balance -scoring_scheme weighted -rpt_label {} -metric {} -sort real -order descending -include_only_symbols true -make_sets true -median false -num 100 -plot_top_x 50 -rnd_seed timestamp -save_rnd_lists false -set_max 500 -set_min 15 -zip_report false -out {} -gui false'.format(gseaPath,gctPath,clsPath,sample_1,sample_2,gmxPath,rptLabel,metric,gseaOutputFolder)
+
+    #write command
+    gseaBashFile.write(gseaCmd_all)
+    gseaBashFile.close()
+    print('writing GSEA output to {}'.format(gseaBashFilePath))
+    return gseaBashFilePath
+    ##if you want to auto run
+    if launch == True:
+        os.system('bash {}'.format(gseaBashFilePath))    
 
 

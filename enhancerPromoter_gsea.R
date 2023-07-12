@@ -9,11 +9,11 @@
 
 args = commandArgs()
 print(args)
-promoterTablePath = args[3]
-distalTablePath = args[4]
-outputFolder = args[5]
-analysisName = args[6]
-top = args[7]
+promoterTablePath = args[6]
+distalTablePath = args[7]
+outputFolder = args[8]
+analysisName = args[9]
+top = args[10]
 
 #=========================================================
 #===========================DEBUG SECTION=================

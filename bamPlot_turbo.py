@@ -33,8 +33,6 @@ THE SOFTWARE.
 import argparse
 import cPickle
 import sys
-import utils
-import pipeline_dfci
 import subprocess
 import os
 import string
@@ -42,8 +40,15 @@ import tempfile
 import zlib
 from distutils.spawn import find_executable
 
+whereAmI = os.path.dirname(os.path.realpath(__file__))
+pipeline_dir = whereAmI + '/'
+
+sys.path.append(pipeline_dir)
+import utils
+import pipeline_dfci
+
 # Try to use the bamliquidatior script on cluster, otherwise, failover to local default, otherwise fail.
-bamliquidatorString = '/ark/home/cl512/pipeline/bamliquidator'
+bamliquidatorString = '/storage/cylin/bin/pipeline/bamliquidator_internal/bamliquidator'
 if not os.path.isfile(bamliquidatorString):
     bamliquidatorString = find_executable('bamliquidator')
     if bamliquidatorString is None:
@@ -54,7 +59,7 @@ nBins = 200
 
 # Get the script's full local path
 whereAmI = os.path.dirname(os.path.realpath(__file__))
-
+pipeline_dir = whereAmI + '/'
 # script that takes in a list of bams, makes an intermediate table file, and then calls R to make the plot
 
 # updated for batching with bamliquidator magic
@@ -83,6 +88,8 @@ def loadAnnotFile(genome, skip_cache=False):
         'RN4': 'annotation/rn4_refseq.ucsc',
         'rn6': 'annotation/rn6_refseq.ucsc',
         'RN6': 'annotation/rn6_refseq.ucsc',
+        'hg38':'annotation/hg38_refseq.ucsc',
+        'HG38':'annotation/hg38_refseq.ucsc',
 
         }
 
@@ -348,7 +355,7 @@ def callRPlot(summaryFile, outFile, yScale, plotStyle,multi):
     else:
         pageFlag = 'SINGLE_PAGE'
 
-    cmd = 'R --no-save %s %s %s %s %s < %s/bamPlot_turbo.R' % (summaryFile, outFile, yScale, plotStyle, pageFlag,whereAmI)
+    cmd = 'Rscript %sbamPlot_turbo.R %s %s %s %s %s' % (pipeline_dir,summaryFile, outFile, yScale, plotStyle, pageFlag)
     print('calling command %s' % (cmd))
     return cmd
 
@@ -380,11 +387,11 @@ def makeBamPlotTables(gff, genome, bamFileList, colorList, nBins, sense, extensi
     for i,bamFile in enumerate(bamFileList):
         # millionMappedReads
         idxCmd = 'samtools idxstats %s' % (bamFile)
+
         idxPipe = subprocess.Popen(idxCmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
         idxStats = idxPipe.communicate()
         idxStats = idxStats[0].split('\n')
         idxStats = [line.split('\t') for line in idxStats]
-
         rawCount = sum([int(line[2]) for line in idxStats[:-1]])
 
         #implement scaling
@@ -397,6 +404,8 @@ def makeBamPlotTables(gff, genome, bamFileList, colorList, nBins, sense, extensi
         else:
             MMR = round(1/float(readScaleFactor),4)
         mmrDict[bamFile] = MMR
+
+
 
     ticker = 1
     # go line by line in the gff
@@ -477,6 +486,9 @@ def main():
                         help="Choose either all lines on a single plot or multiple plots. options = 'SINGLE,MULTIPLE,MERGE'")
     parser.add_argument("-t", "--title", dest="title", default='',
                         help="Specify a title for the output plot(s), default will be the coordinate region")
+    parser.add_argument("-q", "--skip-cache", dest="skip_cache",action='store_true',default=False,
+                        help="Toggles option to skip loading annotation cache file")
+
 
     # DEBUG OPTION TO SAVE TEMP FILES
     parser.add_argument("--scale", dest="scale", default='',
@@ -533,7 +545,7 @@ def main():
                     pass
 
                 if gff is None:
-                    print("Your bed doesn't have a valid senese parameter. Defaulting to both strands, '.'")
+                    print("Your bed doesn't have a valid sense parameter. Defaulting to both strands, '.'")
                     # We only take chr/start/stop and ignore everything else.
                     gff = [[e[0], '', args.input, e[1], e[2], '', '.', '', ''] for e in parsed_input_bed]
             else:
@@ -579,7 +591,7 @@ def main():
 
         # bring in the genome
         genome = args.genome.upper()
-        if ['HG18', 'HG19', 'HG19_RIBO','MM9', 'MM10', 'RN4','RN6'].count(genome) == 0:
+        if ['HG18', 'HG19', 'HG19_RIBO','HG38','MM9', 'MM10', 'RN4','RN6'].count(genome) == 0:
             print('ERROR: UNSUPPORTED GENOME TYPE %s. USE HG19,HG18, RN4, MM9, or MM10' % (genome))
             parser.print_help()
             exit()

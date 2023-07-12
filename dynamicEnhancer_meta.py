@@ -47,7 +47,7 @@ print "Using python version %s" % sys.version
     
 
 #importing utils package
-sys.path.append('/home/chazlin/pipeline/')
+sys.path.append('/storage/cylin/home/cl6/pipeline/')
 import utils
 import pipeline_dfci
 import os
@@ -62,7 +62,7 @@ from collections import defaultdict
 
 #add locations of files and global parameters in this section
 
-pipelineDir = '/home/chazlin/pipeline/'
+pipelineDir = '/storage/cylin/home/cl6/pipeline/'
 
 
 
@@ -508,9 +508,9 @@ def callDeltaRScript(mergedGFFFile,parentFolder,dataFile,name1,name2,allFile1,al
     gffName = mergedGFFFile.split('/')[-1].split('.')[0]
     stitchedFile = "%s%s_ROSE/%s_0KB_STITCHED_ENHANCER_REGION_MAP_MERGED.txt" % (parentFolder,namesList1[0],gffName)
     #print(stitchedFile)
-    os.chdir(pipelineDir)
 
-    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_plot.R" % (stitchedFile,name1,name2,median1,median2)
+
+    rcmd = "Rscript %sdynamicEnhancer_plot.R %s %s %s %s %s" % (pipelineDir,stitchedFile,name1,name2,median1,median2)
 
     return rcmd
 
@@ -528,8 +528,8 @@ def callRankRScript(enhancerRankFile,name1,name2,superFile1,superFile2):
 
 
 
-    os.chdir(pipelineDir)
-    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_rank.R" % (enhancerRankFile,name1,name2,nSuper1,nSuper2)
+
+    rcmd = "Rscript %sdynamicEnhancer_rank.R %s %s %s %s %s" % (pipelineDir,enhancerRankFile,name1,name2,nSuper1,nSuper2)
 
     return rcmd
 
@@ -539,8 +539,8 @@ def callRegionPlotRScript(normRoseOutput,name1,name2,namesList1,namesList2):
     runs the R script to make individual region plots and statistics
     '''
     
-    os.chdir(pipelineDir)
-    rcmd = "R --no-save %s %s %s %s %s < ./dynamicEnhancer_region.R" % (normRoseOutput,name1,name2,len(namesList1),len(namesList2))
+
+    rcmd = "Rscript %sdynamicEnhancer_region.R %s %s %s %s %s" % (pipelineDir,normRoseOutput,name1,name2,len(namesList1),len(namesList2))
     
     return rcmd
 
@@ -555,8 +555,8 @@ def callRoseGeneMapper(mergedGFFFile,genome,parentFolder,namesList1):
     
     deltaFile = stitchedFile.replace('REGION_MAP','DELTA_MERGED')
     
-    os.chdir(pipelineDir)
-    cmd = 'python ROSE2_geneMapper.py -g %s -i %s -w 100000' % (genome,deltaFile)
+
+    cmd = 'python %sROSE2_geneMapper.py -g %s -i %s -w 100000' % (pipelineDir,genome,deltaFile)
     os.system(cmd)
     print(cmd)
 
@@ -571,12 +571,12 @@ def callRoseGeneMapper_stats(mergedGFFFile,genome,parentFolder,namesList1):
 
     regionDiffFile = "%s%s_ROSE/%s_0KB_STITCHED_ENHANCER_REGION_STATS_DIFF.txt" % (parentFolder,namesList1[0],gffName)
     
-    os.chdir(pipelineDir)
 
-    cmd = 'python ROSE2_geneMapper.py -g %s -i %s -w 100000 -f' % (genome,regionStatsFile)
+
+    cmd = 'python %sROSE2_geneMapper.py -g %s -i %s -w 100000 -f' % (pipelineDir,genome,regionStatsFile)
     os.system(cmd)
     print(cmd)
-    cmd = 'python ROSE2_geneMapper.py -g %s -i %s -w 100000 -f' % (genome,regionDiffFile)
+    cmd = 'python %sROSE2_geneMapper.py -g %s -i %s -w 100000 -f' % (pipelineDir,genome,regionDiffFile)
     os.system(cmd)
     print(cmd)
 
@@ -725,7 +725,7 @@ def finishRankOutput(dataFile,statOutput,diffOutput,genome,mergeFolder,mergeName
         #this applies both the statistical test chosen (default fdr <= 0.05) and the cutoff
         #the cutoff is hard wired, but we can add an option to change the test
         #stats are done in the R script. FDR norm can kinda suck if no genes are considered diff
-        print(line)
+        #print(line)
         
         if float(line[-8]) > cutOff and int(line[-4]) == 1:
 
@@ -847,28 +847,28 @@ def finishRankOutput(dataFile,statOutput,diffOutput,genome,mergeFolder,mergeName
         colorString = string.join(colorList,':')
 
         #change dir
-        os.chdir(pipelineDir)
+
     
         if len(gainedGFF) > 0:
             #gained command
             plotTitle = "%s_ONLY_SE" % (name2)
-            cmd = 'python bamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (genome,bamString,gffFilename_gained,outputFolder,nameString,colorString,plotTitle)
+            cmd = 'python %sbamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (pipelineDir,genome,bamString,gffFilename_gained,outputFolder,nameString,colorString,plotTitle)
             os.system(cmd)
 
             #gained window command
             plotTitle = "%s_ONLY_SE_%sKB_WINDOW" % (name2,window/1000)
-            cmd = 'python bamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (genome,bamString,gffFilenameWindow_gained,outputFolder,nameString,colorString,plotTitle)
+            cmd = 'python %sbamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (pipelineDir,genome,bamString,gffFilenameWindow_gained,outputFolder,nameString,colorString,plotTitle)
             os.system(cmd)
 
         if len(lostGFF) > 0:
             #lost command
             plotTitle = "%s_ONLY_SE" % (name1)
-            cmd = 'python bamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (genome,bamString,gffFilename_lost,outputFolder,nameString,colorString,plotTitle)
+            cmd = 'python %sbamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (pipelineDir,genome,bamString,gffFilename_lost,outputFolder,nameString,colorString,plotTitle)
             os.system(cmd)
 
             #lost command
             plotTitle = "%s_ONLY_SE_%sKB_WINDOW" % (name1,window/1000)
-            cmd = 'python bamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (genome,bamString,gffFilenameWindow_lost,outputFolder,nameString,colorString,plotTitle)
+            cmd = 'python %sbamPlot_turbo.py -g %s -b %s -i %s -o %s -n %s -c %s -t %s -r -y UNIFORM -p MERGE' % (pipelineDir,genome,bamString,gffFilenameWindow_lost,outputFolder,nameString,colorString,plotTitle)
             os.system(cmd)
 
 

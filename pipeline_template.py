@@ -34,7 +34,7 @@ THE SOFTWARE.
 
 
 import sys
-sys.path.append('/home/chazlin/pipeline/')
+sys.path.append('/storage/cylin/bin/pipeline/')
 
 import pipeline_dfci
 import utils
